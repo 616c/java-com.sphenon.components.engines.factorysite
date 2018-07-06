@@ -1,0 +1,20 @@
+# in this case, only precompiled instances will be used, no code generation
+# or compilation takes place - this is intended for production verification
+# to make sure everything is appropriately prepared
+
+com.sphenon.engines.factorysite.factories.DynamicCOCPClass.DoGeneration=false
+com.sphenon.engines.factorysite.factories.DynamicCOCPClass.DoCompilation=false
+com.sphenon.engines.factorysite.factories.DynamicCOCPClass.TryToLoadAsResource=true
+com.sphenon.engines.factorysite.factories.DynamicCOCPClass.UseExistingResourceUnconditionally=true
+
+com.sphenon.engines.factorysite.factories.DynamicCOCPAccessorRetriever.DoGeneration=false
+com.sphenon.engines.factorysite.factories.DynamicCOCPAccessorRetriever.DoCompilation=false
+com.sphenon.engines.factorysite.factories.DynamicCOCPAccessorRetriever.TryToLoadAsResource=true
+com.sphenon.engines.factorysite.factories.DynamicCOCPAccessorRetriever.UseExistingResourceUnconditionally=true
+
+com.sphenon.engines.factorysite.factories.DynamicCOCPAccessorFactory.DoGeneration=false
+com.sphenon.engines.factorysite.factories.DynamicCOCPAccessorFactory.DoCompilation=false
+com.sphenon.engines.factorysite.factories.DynamicCOCPAccessorFactory.TryToLoadAsResource=true
+com.sphenon.engines.factorysite.factories.DynamicCOCPAccessorFactory.UseExistingResourceUnconditionally=true
+
+com.sphenon.engines.factorysite.COCPIgnoreMissingClasses=true

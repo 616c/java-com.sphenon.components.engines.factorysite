@@ -1,0 +1,19 @@
+# we allow compilation of missing precompiled COCPs, but use precompiled
+# COCPs as resources unconditionally if they exist, i.e. no modification check
+
+# com.sphenon.engines.factorysite.factories.DynamicCOCPClass.DoGeneration=false
+# com.sphenon.engines.factorysite.factories.DynamicCOCPClass.DoCompilation=false
+com.sphenon.engines.factorysite.factories.DynamicCOCPClass.TryToLoadAsResource=true
+com.sphenon.engines.factorysite.factories.DynamicCOCPClass.UseExistingResourceUnconditionally=true
+
+# com.sphenon.engines.factorysite.factories.DynamicCOCPAccessorRetriever.DoGeneration=false
+# com.sphenon.engines.factorysite.factories.DynamicCOCPAccessorRetriever.DoCompilation=false
+com.sphenon.engines.factorysite.factories.DynamicCOCPAccessorRetriever.TryToLoadAsResource=true
+com.sphenon.engines.factorysite.factories.DynamicCOCPAccessorRetriever.UseExistingResourceUnconditionally=true
+
+# com.sphenon.engines.factorysite.factories.DynamicCOCPAccessorFactory.DoGeneration=false
+# com.sphenon.engines.factorysite.factories.DynamicCOCPAccessorFactory.DoCompilation=false
+com.sphenon.engines.factorysite.factories.DynamicCOCPAccessorFactory.TryToLoadAsResource=true
+com.sphenon.engines.factorysite.factories.DynamicCOCPAccessorFactory.UseExistingResourceUnconditionally=true
+
+com.sphenon.engines.factorysite.COCPIgnoreMissingClasses=true
