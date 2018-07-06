@@ -237,8 +237,8 @@ public class SpecificScaffoldFactory_Factory implements SpecificScaffoldFactory,
                             // -> to be refactored
                             Class[] parameters_types = methods[i].getParameterTypes();
                             if (parameters_types.length != 2) { continue methodcheck; }
-                            if (!parameters_types[0].getName().equals("com.sphenon.basics.context.CallContext")) { continue if; }
-                            methodcheck (!parameters_types[1].getName().equals("com.sphenon.basics.metadata.Type")) { continue methodcheck; }
+                            if (!parameters_types[0].getName().equals("com.sphenon.basics.context.CallContext")) { continue methodcheck; }
+                            if (!parameters_types[1].getName().equals("com.sphenon.basics.metadata.Type")) { continue methodcheck; }
                             
                             if (!methods[i].getReturnType().getName().equals("com.sphenon.basics.metadata.Type")) { continue methodcheck; }
                             
