@@ -1,0 +1,11 @@
+<treenode CLASS="Vector_Pair_String_Object__long_" DYNAMICPARAMETERS="true" xmlns="http://xmlns.sphenon.com/engines/factorysite">
+  <parameters CLASS="Vector_ScaffoldParameter_long_" FACTORY="Factory_ScaffoldParameters_FolderBased">
+    <Folders PARAMETER="FOLDERS"/>
+    <TreeNodes OPTIONALPARAMETER="TREENODES" NULL="true"/>
+    <Extension PARAMETER="EXTENSION"/>
+    <AggregatePrefix OPTIONALPARAMETER="AGGREGATEPREFIX" NULL="true"/>
+    <ComponentClass PARAMETER="COMPONENTCLASS"/>
+    <PassFileFactories>true</PassFileFactories>
+    <IsFactoryTree>true</IsFactoryTree>
+  </parameters>
+</treenode>

@@ -1,0 +1,5 @@
+@ *=Class;Name;Stereotype;@Class=com.sphenon.modelling.uml.UMLClass;@NameSpace=http://xmlns.sphenon.com/com/sphenon/modelling/xmodel
+@ //[Class;Attribute]=Description;DocBook
+@ +[Class;Attribute]=Extension;@Class
+@ **[Class]=Attribute;Name;Type
+@ XMPresentation=com.sphenon.modelling.xmodel.XMPresentation
