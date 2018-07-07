@@ -5,6 +5,6 @@
   <Planet CLASS="String">world</Planet>
   <Message CLASS="String">hello</Message>
   <code:PostBuildScript>
-    java.lang.System.err.println("surprising quickstart result: " + result.get("Message") + " " + result.get("Planet"));
+    java.lang.System.err.println("   the surprising quickstart result is: " + result.get("Message") + " " + result.get("Planet"));
   </code:PostBuildScript>
 </MyObject>

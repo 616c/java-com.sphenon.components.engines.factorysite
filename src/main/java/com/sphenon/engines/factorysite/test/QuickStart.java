@@ -30,11 +30,14 @@ public class QuickStart {
     public static void main(String[] args) {
 
         System.err.println("ObjectAssembler - QuickStart");
+        System.err.println("(you find this in com.sphenon.engines.factorysite.test.QuickStart.java)");
+        System.err.println("");
 
         // optional: in case you want to provide configuration via command line
         Configuration.checkCommandLineArgs(args);
 
-        System.err.println("   initialising...");
+        System.err.println("   initialising services...");
+        System.err.println("");
 
         // required: sphenon library needs a context
         Context context = com.sphenon.basics.context.classes.RootContext.getRootContext();
@@ -45,10 +48,13 @@ public class QuickStart {
 
         try {
 
-            System.err.println("   setting up factory...");
+            System.err.println("   setting up factory to load OCP...");
 
             // our test: setting up factory for aggregates
             Factory_Aggregate fa = new Factory_Aggregate(context);
+
+            System.err.println("   specifying QuickStart OCP...");
+            System.err.println("   (you find this in com.sphenon.engines.objectassembler.QuickStart.ocp)");
 
             // the aggregate we want to create
             // (it is found in the jar at the given location, named QuickStart.ocp
@@ -58,7 +64,7 @@ public class QuickStart {
             Hashtable parameters = new Hashtable();
             fa.setParameters(context, parameters);
 
-            System.err.println("   processing quick start OCP...");
+            System.err.println("   actually processing OCP now...");
 
             // and go...
             result = fa.create(context);
@@ -66,7 +72,15 @@ public class QuickStart {
             NotificationContext.sendTrace(context, Notifier.CHECKPOINT, "Could not build object aggregate: %(reason)", "reason", e);
             return;
         }
+
+        if ( ! (result instanceof Hashtable)) {
+            System.err.println("   Assertion failed: result is not a Hashtable");
+        } else if ( ! "hello".equals(((Hashtable) result).get("Message"))) {
+            System.err.println("   Assertion failed: entry 'Message' in result is not 'hello'");
+        } else if ( ! "world".equals(((Hashtable) result).get("Planet"))) {
+            System.err.println("   Assertion failed: entry 'Planet' in result is not 'world'");
+        } else {
+            System.err.println("   (result looks good, all tests passed successfully)");
+        }
     }
-
 }
-
