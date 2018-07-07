@@ -1,0 +1,13 @@
+BuildFailure.java#2018-07-03 15:34:41.782
+CompileFailure.java#2018-07-03 15:34:41.807
+DataSourceUnavailable.java#2018-07-03 15:34:41.788
+IgnoreErraneousDataSource.java#2018-07-03 15:34:41.780
+InvalidCTN.java#2018-07-03 15:34:41.799
+InvalidClass.java#2018-07-03 15:34:41.777
+InvalidDocument.java#2018-07-03 15:34:41.802
+InvalidFactory.java#2018-07-03 15:34:41.804
+InvalidRetriever.java#2018-07-03 15:34:41.796
+NoSuchConstructor.java#2018-07-03 15:34:41.774
+NoSuchFactory.java#2018-07-03 15:34:41.791
+PutUpFailure.java#2018-07-03 15:34:41.785
+TypeMismatch.java#2018-07-03 15:34:41.793
