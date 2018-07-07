@@ -558,6 +558,7 @@ public class OCPFinder {
                                 for (String ext : mea) {
                                     fullpath = concatPathes(context, Encoding.recode(context, spe, Encoding.URI, Encoding.UTF8), my_aggregate_class + ocp_variant[0] + "." + ext);
                                     found = ((result_node = Factory_TreeNode.tryConstruct(context, fullpath)) != null);
+                                    if ((this.notification_level & Notifier.VERBOSE) != 0) { cc.sendTrace(context, Notifier.SELF_DIAGNOSTICS, "Factory_Aggregate[%(oid)].create(): trying: '%(fullpath)' - '%({\"not found\",\"found\"}[found])'", "fullpath", fullpath, "found", t.o(found ? 1 : 0)); }
                                     if (found) {
                                         if (ocp_finder_cache_debug) { System.err.println("OCP3:OK: " + spe + " - " + my_aggregate_class + " - " + ocp_variant[0] + " - . - " + ext); }
                                         if (cache_3 == null) {
