@@ -29,8 +29,12 @@ public class QuickStart {
 
     public static void main(String[] args) {
 
+        System.err.println("ObjectAssembler - QuickStart");
+
         // optional: in case you want to provide configuration via command line
         Configuration.checkCommandLineArgs(args);
+
+        System.err.println("   initialising...");
 
         // required: sphenon library needs a context
         Context context = com.sphenon.basics.context.classes.RootContext.getRootContext();
@@ -41,11 +45,21 @@ public class QuickStart {
 
         try {
 
+            System.err.println("   setting up factory...");
+
             // our test: setting up factory for aggregates
             Factory_Aggregate fa = new Factory_Aggregate(context);
+
             // the aggregate we want to create
             // (it is found in the jar at the given location, named QuickStart.ocp
             fa.setAggregateClass(context, "com/sphenon/engines/objectassembler/QuickStart");
+
+            // in case we want to provide parameters
+            Hashtable parameters = new Hashtable();
+            fa.setParameters(context, parameters);
+
+            System.err.println("   processing quick start OCP...");
+
             // and go...
             result = fa.create(context);
         } catch (ExceptionError e) {
