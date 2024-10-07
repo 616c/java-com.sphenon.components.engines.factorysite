@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -38,6 +38,10 @@ import java.util.Vector;
 
 public class SpecificScaffoldFactory_FactoryEnum extends SpecificScaffoldFactory_Factory {
 
+    public int getPriority(CallContext context) {
+        return 3;
+    }
+
     public String getBuildString(CallContext context) throws InvalidFactory {
         initialise(context);
         return "FactoryEnum|"
@@ -72,7 +76,7 @@ public class SpecificScaffoldFactory_FactoryEnum extends SpecificScaffoldFactory
     }
 
     protected SpecificScaffoldFactory_FactoryEnum (CallContext context, Type type, Type factory_type, String method_name, boolean allow_dynamic_type_check, boolean do_initialise, String build_string, String type_context) throws InvalidFactory {
-        super(context, type, factory_type, method_name, allow_dynamic_type_check, do_initialise, build_string, type_context);
+        super(context, type, factory_type, method_name, allow_dynamic_type_check, do_initialise, build_string, type_context, null);
     }
 
     public Scaffold create (CallContext context, Vector_ScaffoldParameter_long_ parameters, MatchResult match_result, FactorySiteListener listener, boolean is_singleton, boolean have_dynamic_parameters, FactorySite factory_site, String oid, int pass, Vector<String[]> pre_conditions, Vector<String[]> post_conditions, Vector<String[]> pre_build_scripts, Vector<String[]> post_build_scripts, String source_location_info, String problem_monitor_oid) throws InvalidFactory {

@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -51,6 +51,10 @@ public class SpecificScaffoldFactory_Array implements SpecificScaffoldFactory, C
     protected String build_string;
 
     protected String type_context;
+
+    public int getPriority(CallContext context) {
+        return 4;
+    }
 
     public Vector<ParEntry> getFormalScaffoldParameters (CallContext context) {
         return null;
@@ -113,6 +117,19 @@ public class SpecificScaffoldFactory_Array implements SpecificScaffoldFactory, C
         CustomaryContext cc = CustomaryContext.create(context);
 
         if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Is matching? ('%(type)' [A])", "type", this.type); }
+
+        for (int i=0; i<parameters.getSize(context); i++) {
+            ScaffoldParameter sp  = parameters.tryGet(context, i);
+
+            if (sp.getType(context) != null && sp.getType(context).isA(context, this.component_type) == false) {
+                MessageText mt = MessageText.create(context, "No, parameter #%(index) is not of component type '%(expected)', but of '%(got)'", "index", i, "expected", this.component_type, "got", sp.getType(context));
+                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) {
+                    cc.sendTrace(context, Notifier.DIAGNOSTICS, mt);
+                }
+                return new MatchResult(mt, this);
+            }
+        }
+
         if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Yes"); }
 
         return new MatchResult(actual_matched_type);

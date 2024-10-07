@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite.json;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -122,6 +122,7 @@ public class BuildTextJSONFactory implements BuildTextFactory {
                 meta_node = node;
             } else if (    node.isArray()
                         && node.get(0) != null
+                        && node.get(0).get("@" + BuildTextKeywords.Meta) != null
                         && node.get(0).get("@" + BuildTextKeywords.Meta).asText().equals("true")
                       ) {
                 meta_node = node.get(0);

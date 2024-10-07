@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -287,12 +287,12 @@ abstract public class ScaffoldGeneric_BaseImpl
         return null;
     }
 
-    protected Iterable getForeach(CallContext context, DynamicScaffoldParameter dsp) {
+    protected Iterable getForeach(CallContext context, DynamicScaffoldParameter dsp, Scope local_scope) {
         if (    dsp != null
              && dsp.getForeachExpression(context) != null
             ) {
             try {
-                return o2i(context,dsp.getForeachExpression(context).evaluate(context, this.previous_scope));
+                return o2i(context,dsp.getForeachExpression(context).evaluate(context, local_scope != null ? local_scope : this.previous_scope));
             } catch (EvaluationFailure ef) {
                 CustomaryContext.create((Context)context).throwPreConditionViolation(context, ef, "Evaluation of expression '%(expression)' failed (at '%(info)')", "expression", dsp.getForeachExpression(context).getExpression(context), "info", this.source_location_info);
                 throw (ExceptionPreConditionViolation) null; // compiler insists

@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -30,10 +30,12 @@ public interface COCPBuildText {
         public String  name;
         public Type    type;
         public boolean optional;
-        public Parameter(CallContext context, String name, String type_id, boolean optional) {
-            this.name     = name;
-            this.type     = TypeManager.tryGetById(context, type_id);
-            this.optional = optional;
+        public String  default_value;
+        public Parameter(CallContext context, String name, String type_id, boolean optional, String default_value) {
+            this.name          = name;
+            this.type          = TypeManager.tryGetById(context, type_id);
+            this.optional      = optional;
+            this.default_value = default_value;
         }
     }
 
@@ -45,5 +47,5 @@ public interface COCPBuildText {
 
     public Vector<Parameter> getParametersToDeclare (CallContext context);
     public void setParametersToDeclare (CallContext context, Vector<Parameter> parameters_to_declare);
-    public void addParameterToDeclare (CallContext context, String name, String type_id, boolean optional);
+    public void addParameterToDeclare (CallContext context, String name, String type_id, boolean optional, String default_value);
 }

@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -215,6 +215,7 @@ public class BuildTextKeywords {
                                    "(" + OIDREF + ")|"
                                  + "(" + IDREF + ")|"
                                  + "(" + PARAMETER + ")|" + "(" + PARAMETER_UC + ")|"
+                                 + "(" + NULL + ")|"
                                  + "(" + EXPRESSION_TEXT + ")|" + "(" + EXPRESSION_TEXT_UC + ")|"
                                  + "(" + EXPRESSION_VALUE + ")|" + "(" + EXPRESSION_VALUE_UC + ")|"
                                  + "(" + LOCATOR + ")|" + "(" + LOCATOR_UC + ")|";

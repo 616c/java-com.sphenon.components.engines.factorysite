@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -27,9 +27,9 @@ import com.sphenon.engines.factorysite.exceptions.*;
 public class DataSourceConnector_Parameter
     extends DataSourceConnector_Coverable
 {
-    protected String name;
-    protected boolean is_optional;
-    protected boolean is_static;
+    protected String     name;
+    protected boolean    is_optional;
+    protected boolean    is_static;
 
     public boolean isOptional (CallContext context) {
         return this.is_optional;
@@ -52,25 +52,18 @@ public class DataSourceConnector_Parameter
     }
 
     public DataSourceConnector_Parameter (CallContext context, Type type, String name, String source_location_info) {
-        super(context, type, source_location_info);
-        this.name = name;
-        this.is_optional = false;
-        this.is_static = false;
+        this(context, type, name, null, false, false, source_location_info);
     }
 
     public DataSourceConnector_Parameter (CallContext context, Type type, String name, DataSourceConnector higher_ranking, String source_location_info) {
-        super(context, type, higher_ranking, source_location_info);
-        this.name = name;
-        this.is_optional = false;
-        this.is_static = false;
+        this(context, type, name, higher_ranking, false, false, source_location_info);
     }
 
     public DataSourceConnector_Parameter (CallContext context, Type type, String name, DataSourceConnector higher_ranking, boolean is_optional, boolean is_static, String source_location_info) {
-        super(context, type, source_location_info);
-        this.name = name;
-        this.is_optional = is_optional;
-        this.is_static = is_static;
-        this.higher_ranking = higher_ranking;
+        super(context, type, higher_ranking, source_location_info);
+        this.name             = name;
+        this.is_optional      = is_optional;
+        this.is_static        = is_static;
     }
 
     public void setDataSource(CallContext context, DataSource data_source) throws TypeMismatch {

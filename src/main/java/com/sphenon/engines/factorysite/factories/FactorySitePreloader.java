@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite.factories;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -95,10 +95,58 @@ public class FactorySitePreloader {
                                            TypeManager.get(context, com.sphenon.basics.locating.Location.class),
                                            TypeManager.get(context, com.sphenon.basics.locating.factories.Factory_Location_ByPrototype.class),
                                            false);
-                //sf.preloadScaffoldFactory (context,
-                //                           TypeManager.get(context, com.sphenon.basics.metadata.Type.class),
-                //                           TypeManager.get(context, com.sphenon.basics.metadata.factories.Factory_NamedType.class),
-                //                           false);
+                sf.preloadScaffoldFactory (context,
+                                           TypeManager.getParametrised(context, com.sphenon.basics.retriever.GenericFilter.class, TypeManager.get(context, Boolean.class)),
+                                           TypeManager.get(context, com.sphenon.basics.retriever.tplinst.Factory_Filter_boolean_.class),
+                                           false);
+                sf.preloadScaffoldFactory (context,
+                                           TypeManager.getParametrised(context, com.sphenon.basics.retriever.GenericFilter.class, TypeManager.get(context, Byte.class)),
+                                           TypeManager.get(context, com.sphenon.basics.retriever.tplinst.Factory_Filter_byte_.class),
+                                           false);
+                sf.preloadScaffoldFactory (context,
+                                           TypeManager.getParametrised(context, com.sphenon.basics.retriever.GenericFilter.class, TypeManager.get(context, Short.class)),
+                                           TypeManager.get(context, com.sphenon.basics.retriever.tplinst.Factory_Filter_short_.class),
+                                           false);
+                sf.preloadScaffoldFactory (context,
+                                           TypeManager.getParametrised(context, com.sphenon.basics.retriever.GenericFilter.class, TypeManager.get(context, Integer.class)),
+                                           TypeManager.get(context, com.sphenon.basics.retriever.tplinst.Factory_Filter_int_.class),
+                                           false);
+                sf.preloadScaffoldFactory (context,
+                                           TypeManager.getParametrised(context, com.sphenon.basics.retriever.GenericFilter.class, TypeManager.get(context, Long.class)),
+                                           TypeManager.get(context, com.sphenon.basics.retriever.tplinst.Factory_Filter_long_.class),
+                                           false);
+                sf.preloadScaffoldFactory (context,
+                                           TypeManager.getParametrised(context, com.sphenon.basics.retriever.GenericFilter.class, TypeManager.get(context, Float.class)),
+                                           TypeManager.get(context, com.sphenon.basics.retriever.tplinst.Factory_Filter_float_.class),
+                                           false);
+                sf.preloadScaffoldFactory (context,
+                                           TypeManager.getParametrised(context, com.sphenon.basics.retriever.GenericFilter.class, TypeManager.get(context, Double.class)),
+                                           TypeManager.get(context, com.sphenon.basics.retriever.tplinst.Factory_Filter_double_.class),
+                                           false);
+                sf.preloadScaffoldFactory (context,
+                                           TypeManager.getParametrised(context, com.sphenon.basics.retriever.GenericFilter.class, TypeManager.get(context, String.class)),
+                                           TypeManager.get(context, com.sphenon.basics.retriever.tplinst.Factory_Filter_String_.class),
+                                           false);
+                sf.preloadScaffoldFactory (context,
+                                           TypeManager.getParametrised(context, com.sphenon.basics.retriever.GenericFilter.class, TypeManager.get(context, Class.class)),
+                                           TypeManager.get(context, com.sphenon.basics.retriever.tplinst.Factory_Filter_Class_.class),
+                                           false);
+                sf.preloadScaffoldFactory (context,
+                                           TypeManager.getParametrised(context, com.sphenon.basics.retriever.GenericFilter.class, TypeManager.get(context, java.util.Date.class)),
+                                           TypeManager.get(context, com.sphenon.basics.retriever.tplinst.Factory_Filter_Date_.class),
+                                           false);
+                sf.preloadScaffoldFactory (context,
+                                           TypeManager.getParametrised(context, com.sphenon.basics.retriever.GenericFilter.class, TypeManager.get(context, com.sphenon.basics.retriever.Time.class)),
+                                           TypeManager.get(context, com.sphenon.basics.retriever.tplinst.Factory_Filter_Time_.class),
+                                           false);
+                sf.preloadScaffoldFactory (context,
+                                           TypeManager.getParametrised(context, com.sphenon.basics.retriever.GenericFilter.class, TypeManager.get(context, com.sphenon.basics.retriever.Meter.class)),
+                                           TypeManager.get(context, com.sphenon.basics.retriever.tplinst.Factory_Filter_Meter_.class),
+                                           false);
+                sf.preloadScaffoldFactory (context,
+                                           TypeManager.getParametrised(context, com.sphenon.basics.retriever.GenericFilter.class, TypeManager.get(context, com.sphenon.basics.retriever.TrafficLight.class)),
+                                           TypeManager.get(context, com.sphenon.basics.retriever.tplinst.Factory_Filter_TrafficLight_.class),
+                                           false);
             } catch (InvalidFactory ifac) {
                 cc.throwConfigurationError(context, ifac, "Could not preload factory");
                 throw (ExceptionConfigurationError) null;

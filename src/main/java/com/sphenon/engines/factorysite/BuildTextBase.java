@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -409,11 +409,11 @@ abstract public class BuildTextBase implements BuildText, Dumpable {
         this.parameters_to_declare = parameters_to_declare;
     }
 
-    public void addParameterToDeclare (CallContext context, String name, String type_id, boolean optional) {
+    public void addParameterToDeclare (CallContext context, String name, String type_id, boolean optional, String default_value) {
         if (this.parameters_to_declare == null) {
             this.parameters_to_declare = new Vector<COCPBuildText.Parameter>();
         }
-        parameters_to_declare.add(new COCPBuildText.Parameter(context, name, type_id, optional));
+        parameters_to_declare.add(new COCPBuildText.Parameter(context, name, type_id, optional, default_value));
     }
 
     protected boolean is_expanded;

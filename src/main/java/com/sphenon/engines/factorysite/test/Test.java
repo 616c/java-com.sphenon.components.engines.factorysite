@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite.test;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -491,6 +491,11 @@ public class Test {
 
             Object o195 = h1.get("item" + new Integer(95).toString());
             cc.sendTrace(context, Notifier.CHECKPOINT, "Table 1, object 95: %(class) - text: %(text)", "class", o195.getClass().toString(), "text", ((String) o195));
+
+            Object o197 = h1.get("item" + new Integer(97).toString());
+            cc.sendTrace(context, Notifier.CHECKPOINT, "Table 1, object 97: %(class) - text: %(text)", "class", o197.getClass().toString(), "text", ((String) o197));
+            Object o198 = h1.get("item" + new Integer(98).toString());
+            cc.sendTrace(context, Notifier.CHECKPOINT, "Table 1, object 98: %(class) - text: %(text)", "class", o198.getClass().toString(), "text", ((String) o198));
 
             Object o21 = h2.get("item" + new Integer(1).toString());
             cc.sendTrace(context, Notifier.CHECKPOINT, FactorySiteStringPool.get(context, "2.1.14" /* Table 2, object 1: %(class) - %(object) */), "class", o21.getClass().toString(), "object", o21);

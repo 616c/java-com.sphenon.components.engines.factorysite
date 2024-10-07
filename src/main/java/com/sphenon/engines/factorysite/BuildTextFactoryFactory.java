@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -56,6 +56,9 @@ public class BuildTextFactoryFactory {
     static protected Map<String, Format> map;
 
     static protected Format getFormat(CallContext context, String filename) {
+        if (filename == null || filename.isEmpty()) {
+            return Format.Dynamic;
+        }
         int    dotpos    = filename.lastIndexOf('.');
         String extension = filename.substring(dotpos+1);
         if (map == null) {

@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -212,7 +212,7 @@ public class ScaffoldGenericArray
                         
                         Scope local_scope = this.pushScope(context, dsp, true);
 
-                        Iterable it = getForeach(context, dsp);
+                        Iterable it = getForeach(context, dsp, local_scope);
                         if (it != null) {
                             for (Object index_object : it) {
                                 updateScope(context, dsp, local_scope, index_object);

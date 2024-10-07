@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite.tocp;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -25,6 +25,7 @@ import com.sphenon.basics.factory.returncodes.*;
 import com.sphenon.engines.factorysite.*;
 
 import java.util.Vector;
+import java.util.Map;
 import java.io.StringReader;
 
 public class TOCPASTNode {
@@ -41,6 +42,16 @@ public class TOCPASTNode {
     }
 
     public TOCPASTNode(CallContext context) {
+    }
+
+    protected Map<String,String> argument_mapping;
+
+    public Map<String,String> getArgumentMapping (CallContext context) {
+        return this.argument_mapping;
+    }
+
+    public void setArgumentMapping (CallContext context, Map<String,String> argument_mapping) {
+        this.argument_mapping = argument_mapping;
     }
 
     protected String value;

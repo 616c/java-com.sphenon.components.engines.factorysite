@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -47,6 +47,9 @@ public class FactorySitePackageInitialiser {
             TypeManager.registerSpecificTypeFactory(context, new SpecificTypeFactory_Aggregate(context));
 
             FactorySitePreloader.initialise(context);
+
+            // for testing purposes here
+            // registerGenerics(context, getConfiguration(context).get(context, "Generics", (string) null));
 
             if (getConfiguration(context).get(context, "SaveCacheOnExit", false)) {
                 ScaffoldFactory.saveCacheOnExit(context);
@@ -265,6 +268,18 @@ public class FactorySitePackageInitialiser {
             CustomaryContext.create(Context.create(context)).throwConfigurationError(context, nsc, "Invalid default definition entry '%(entry)'", "entry", default_def);
             throw (ExceptionConfigurationError) null; // compiler insists
         }
+    }
+
+    static public void registerGenerics (CallContext context, String config) {
+        // read them from config
+        // split into classes, factories, retrievers
+        // loop over them
+        // create this (and more to come):
+        // List<Type> handled_types = ...
+        // and register it
+        // GenericClass_Map.Factory(context, ) {
+        // GenericFactory_Map.Factory(context, ) {
+        // GenericRetriever_Map.Factory(context, ) {
     }
 
     static protected Configuration config;

@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -62,6 +62,7 @@ public class SpecificScaffoldFactory_Factory implements SpecificScaffoldFactory,
 
     protected Type type;
     protected Type factory_type;
+    protected GenericFactory.Factory generic_factory_factory;
     protected String method_name;
     protected boolean allow_dynamic_type_check;
     protected Method create_method;
@@ -78,6 +79,10 @@ public class SpecificScaffoldFactory_Factory implements SpecificScaffoldFactory,
 
     protected Hashtable par_entries;
     protected Vector<ParEntry> formal_scaffold_parameters;
+
+    public int getPriority(CallContext context) {
+        return 0;
+    }
 
     public Vector<ParEntry> getFormalScaffoldParameters (CallContext context) {
         try {
@@ -106,7 +111,8 @@ public class SpecificScaffoldFactory_Factory implements SpecificScaffoldFactory,
             + this.factory_type.getId(context) + "|"
             + (this.method_name == null ? "" : this.method_name) + "|"
             + this.allow_dynamic_type_check + "|"
-            + this.type_context;
+            + this.type_context + "|"
+            + (this.generic_factory_factory == null ? "" : "G");
     }
 
     static public SpecificScaffoldFactory_Factory buildFromString(CallContext context, String build_string) {
@@ -116,19 +122,23 @@ public class SpecificScaffoldFactory_Factory implements SpecificScaffoldFactory,
         String method_name               = (args[3] == null || args[3].length() == 0 ? null : args[3]);
         boolean allow_dynamic_type_check = new Boolean(args[4]);
         String type_context              = args[5];
+        GenericFactory.Factory generic_factory_factory = (  args.length < 7 || args[6] == null || args[6].equals("G") == false
+                                                            ? null
+                                                            : ScaffoldFactory.lookupGenericFactoryFactory(context, TypeManager.erase(context, type))
+                                                         );
         context = Context.create(context);
         TypeContext tc = TypeContext.create((Context)context);
         tc.setSearchPathContext(context, type_context);
         try {
-            return new SpecificScaffoldFactory_Factory(context, type, factory_type, method_name, allow_dynamic_type_check, false, build_string, type_context);
+            return new SpecificScaffoldFactory_Factory(context, type, factory_type, method_name, allow_dynamic_type_check, false, build_string, type_context, generic_factory_factory);
         } catch (InvalidFactory ifac) { return null; /* cannot happen */ }
     }
 
     public SpecificScaffoldFactory_Factory (CallContext context, Type type, Type factory_type, String method_name, boolean allow_dynamic_type_check) throws InvalidFactory {
-        this(context, type, factory_type, method_name, allow_dynamic_type_check, true, null, null);
+        this(context, type, factory_type, method_name, allow_dynamic_type_check, true, null, null, null);
     }
 
-    public SpecificScaffoldFactory_Factory (CallContext context, Type type, Type factory_type, String method_name, boolean allow_dynamic_type_check, boolean do_initialise, String build_string, String type_context) throws InvalidFactory {
+    public SpecificScaffoldFactory_Factory (CallContext context, Type type, Type factory_type, String method_name, boolean allow_dynamic_type_check, boolean do_initialise, String build_string, String type_context, GenericFactory.Factory generic_factory_factory) throws InvalidFactory {
         this.allow_dynamic_type_check = allow_dynamic_type_check;
 
         // - we need to register for Java core type only, since
@@ -154,6 +164,7 @@ public class SpecificScaffoldFactory_Factory implements SpecificScaffoldFactory,
         this.type = type;
 
         this.factory_type = factory_type;
+        this.generic_factory_factory = generic_factory_factory;
         this.method_name = method_name;
 
         this.build_string = build_string;
@@ -189,7 +200,7 @@ public class SpecificScaffoldFactory_Factory implements SpecificScaffoldFactory,
                     this.type_context = tc.getSearchPathContext(context);
                     
                     try {
-                        factoryclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, ((TypeImpl) (factory_type)).getJavaClassName(context));
+                        factoryclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, JavaType.tryGetJavaType(context, factory_type).getJavaClassName(context));
                     } catch (ClassNotFoundException e) {
                         cc.throwImpossibleState (context, "Factory class retrieved from Type instance not found: %(class)", "class", factory_type.getName(context));
                         throw (ExceptionImpossibleState) null;
@@ -364,7 +375,10 @@ public class SpecificScaffoldFactory_Factory implements SpecificScaffoldFactory,
                             new_instance_method = methods[i];
                             if ((this.notification_level & Notifier.VERBOSE) != 0) { cc.sendTrace(context, Notifier.VERBOSE, "...recognised: newInstance method"); }
                         } else {
-                            if (name.length() > 3 && name.regionMatches(false, 0, "set", 0, 3)) {
+                            if (    name.length() > 3
+                                 && name.regionMatches(false, 0, "set", 0, 3)
+                                 && Character.isLowerCase(name.charAt(3)) == false
+                               ) {
                                 if ((this.notification_level & Notifier.VERBOSE) != 0) { cc.sendTrace(context, Notifier.VERBOSE, "...interesting, formal set method..."); }
                                 String parname;
                                 try { parname = name.substring(3); } catch (StringIndexOutOfBoundsException e) { continue methodcheck; }
@@ -440,7 +454,10 @@ public class SpecificScaffoldFactory_Factory implements SpecificScaffoldFactory,
                                 par_entry.set_method_has_context = has_context;
                                 par_entry.type = partype;
                                 if ((this.notification_level & Notifier.VERBOSE) != 0) { cc.sendTrace(context, Notifier.VERBOSE, "...recognised: set method"); }
-                            } else if (name.length() > 7 && name.regionMatches(false, 0, "default", 0, 7)) {
+                            } else if (    name.length() > 7
+                                        && name.regionMatches(false, 0, "default", 0, 7)
+                                        && Character.isLowerCase(name.charAt(7)) == false
+                                      ) {
                                 if ((this.notification_level & Notifier.VERBOSE) != 0) { cc.sendTrace(context, Notifier.VERBOSE, "...interesting, formal default method..."); }
                                 String parname;
                                 try { parname = name.substring(7); } catch (StringIndexOutOfBoundsException e) { continue methodcheck; }
@@ -579,6 +596,7 @@ public class SpecificScaffoldFactory_Factory implements SpecificScaffoldFactory,
         List defpars_info = null;
         List setpars_info = null;
         List ignpars_info = null;
+        List umpars_info  = null;
         Vector_ParEntry_long_ parameters_to_be_defaulted = null;
         Vector_ParEntry_long_ parameters_to_be_set = null;
 
@@ -587,6 +605,10 @@ public class SpecificScaffoldFactory_Factory implements SpecificScaffoldFactory,
         int non_applicable_count = 0;
         Hashtable non_applicable_ones = null;
         List napars_info = null;
+
+        boolean used_multiply = (this.set_parameters_at_once == null && parameters_by_name == null ? true : false);
+        Set<String> check = null;
+
         for (ScaffoldParameter sp : parameters.getIterable_ScaffoldParameter_(context)) {
             if (sp.getAppliesTo(context) != null) {
                 boolean does_apply = false;
@@ -609,11 +631,26 @@ public class SpecificScaffoldFactory_Factory implements SpecificScaffoldFactory,
                     napars_info.add(name);
                 }
             }
+
+            if (used_multiply) {
+                if (check == null) {
+                    check = new HashSet<String>();
+                }
+                String sn = sp.getName(context);
+                if (check.contains(sn)) {
+                    if (umpars_info == null) {
+                        umpars_info = new LinkedList();
+                    }
+                    umpars_info.add(sn);
+                } else {
+                    check.add(sn);
+                }
+            }
         }
 
         if (this.set_parameters_at_once == null) {
             if (parameters_by_name == null) {
-                MessageText mt = MessageText.create(context, "No, parameter names used multiply, but factory requires uniqueness (no set-at-once method)");
+                MessageText mt = MessageText.create(context, "No, parameter names used multiply, but factory requires uniqueness (no set-at-once method); parameters used multiply'%(umpars)'", "umpars", umpars_info);
                 if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) {
                     cc.sendTrace(context, Notifier.DIAGNOSTICS, mt);
                 }
@@ -705,7 +742,7 @@ public class SpecificScaffoldFactory_Factory implements SpecificScaffoldFactory,
                             }
                             parameters_to_be_set.append(context, parentry);
                             
-                            if (actual_partype != null && ! actual_partype.isA(context, parentry.type)) {
+                            if (actual_partype != null && ! TypeManager.isAErased(context, actual_partype, parentry.type)) {
                                 MessageText mt = MessageText.create(context, "No, actual ('%(acttype)') and formal ('%(fortype)') parameter do not match for '%(parname)'", "parname", parname, "acttype", actual_partype, "fortype", parentry.type);
                                 if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) {
                                     cc.sendTrace(context, Notifier.DIAGNOSTICS, mt);

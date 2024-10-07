@@ -1,7 +1,7 @@
 
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -41,7 +41,7 @@ public class DataSourceConnector
     
     public Object getValueAsObject(CallContext context) throws DataSourceUnavailable, IgnoreErraneousDataSource {
         if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { CustomaryContext.create((Context)context).sendTrace(context, Notifier.DIAGNOSTICS, "DataSourceConnector for '%(type)', getValueAsObject (%(info)), delegating to data source...", "type", this.getType(context) == null ? "(null)" : this.getType(context).getName(context), "info", this.getSourceLocationInfo(context)); }
-        return this.getDataSource(context).getValueAsObject(context);
+        return this.getDataSourceOrDefault(context).getValueAsObject(context);
     }
 
 //     public void compile(CallContext context, java.io.PrintStream code, String var_prefix, String indent, Vector_String_long_ pars, boolean do_not_append_par) throws DataSourceUnavailable {

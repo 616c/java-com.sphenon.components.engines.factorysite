@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -21,6 +21,7 @@ import com.sphenon.basics.tracking.*;
 import com.sphenon.basics.exception.*;
 import com.sphenon.basics.notification.*;
 import com.sphenon.basics.performance.*;
+import com.sphenon.basics.configuration.*;
 import com.sphenon.basics.customary.*;
 import com.sphenon.basics.expression.*;
 import com.sphenon.basics.expression.classes.*;
@@ -55,7 +56,7 @@ import java.io.IOException;
 public class FactorySiteTextBased
   implements FactorySite
 {
-     static final public Class _class = FactorySiteTextBased.class;
+    static final public Class _class = FactorySiteTextBased.class;
 
     static protected long notification_level;
     static public    long adjustNotificationLevel(long new_level) { long old_level = notification_level; notification_level = new_level; return old_level; }
@@ -66,6 +67,15 @@ public class FactorySiteTextBased
     static public    long adjustRuntimeStepLevel(long new_level) { long old_level = runtimestep_level; runtimestep_level = new_level; return old_level; }
     static public    long getRuntimeStepLevel() { return runtimestep_level; }
     static { runtimestep_level = RuntimeStepLocationContext.getLevel(_class); };
+
+    static protected Configuration config;
+    static { config = Configuration.create(RootContext.getInitialisationContext(), _class); };
+
+    static protected enum DEBUG { BREAK_AT };
+    static protected boolean[] debug_features;
+    static public    boolean[] adjustDebugFeatures(boolean[] new_features) { boolean[] old_features = debug_features; debug_features = new_features; return old_features; }
+    static public    boolean[] getDebugFeatures() { return debug_features; }
+    static { debug_features = DebugFeatures.getFeatures(_class, DEBUG.class); };
 
     private DataSource main_data_source;
     private DataSource main_data_source_internal;
@@ -747,6 +757,26 @@ public class FactorySiteTextBased
         if (problem_monitor_oid != null && problem_monitor_oid.length() == 0) { problem_monitor_oid = null; }
 
         String mybtpath = (btpath == null ? node_name : (btpath + "/" + node_name));
+
+        if (DebugFeatures.isEnabled(context, DEBUG.BREAK_AT, debug_features)) {
+            String break_at = config.get(context, "BreakAt", (String) null);
+            if (break_at != null) {
+                String[] break_at_regexps = break_at.split(":", 2);
+                if (    break_at_regexps != null
+                     && break_at_regexps.length == 2
+                     && (    break_at_regexps[0] == null
+                          || break_at_regexps[0].isEmpty()
+                          || this.site_id.matches(break_at_regexps[0]))
+                     && (    break_at_regexps[1] == null
+                          || break_at_regexps[1].isEmpty()
+                          || mybtpath.matches(break_at_regexps[1]))
+                   ) {
+                    if ((notification_level & Notifier.DIAGNOSTICS) != 0) { NotificationContext.sendDiagnostics(context, "Reached BuildText path '%(btpath)' in '%(siteid)'", "btpath", mybtpath, "siteid", this.site_id); }
+                    int BREAK_HERE = 42;
+                }
+            }
+        }
+
         Map<String,Object> meta_data = build_text.getMetaData(context);
         if (meta_data != null) {
             for (String key : meta_data.keySet()) {
@@ -881,7 +911,7 @@ public class FactorySiteTextBased
                     checkExpression(context, post_build_script[0], higher_ranking, cocpbt, sw, dr, coder);
                 }
             }
-            
+
             if (toplevel) {
                 String variable_definition_expression = checkExpression(context, build_text.getDefine(context), higher_ranking, cocpbt, sw, dr, coder);
                 if (    variable_definition_expression != null
@@ -902,7 +932,7 @@ public class FactorySiteTextBased
 
             int pass = build_text.getPass(context);
             if (pass > passes) { passes = pass; }
-            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, indent + FactorySiteStringPool.get(context, "0.5.0" /* Putting up '%(type)' Scaffold%(factory)%(oid)%(dynamic) (%(info))... */), "type", typename, "factory", ((factory.length() == 0 ? "" : (" [F|" + factory + "]")) + (retriever.length() == 0 ? "" : (" [R|" + retriever + "]"))), "oid", (oid.length() == 0 ? "" : (" #" + oid)), "dynamic", (allow_dynamic_type_check ? " (dynamic)" : ""), "missing", (allow_missing_arguments ? " (relaxed)" : ""), "info", build_text.getSourceLocationInfo(context)); }
+            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, indent + FactorySiteStringPool.get(context, "0.5.0" /* Putting up '%(type)' Scaffold%(factory)%(oid)%(dynamic) (%(info))... */), "type", typename, "factory", ((factory == null || factory.length() == 0 ? "" : (" [F|" + factory + "]")) + (retriever == null || retriever.length() == 0 ? "" : (" [R|" + retriever + "]"))), "oid", (oid == null || oid.length() == 0 ? "" : (" #" + oid)), "dynamic", (allow_dynamic_type_check ? " (dynamic)" : ""), "missing", (allow_missing_arguments ? " (relaxed)" : ""), "info", build_text.getSourceLocationInfo(context)); }
             DataSource result;
             Scaffold scaffold;
             
@@ -1121,7 +1151,7 @@ public class FactorySiteTextBased
                 
                 if (cocpbt != null && cocpbt.getParametersToDeclare(context) != null) {
                     for (COCPBuildText.Parameter p : cocpbt.getParametersToDeclare(context)) {
-                        this.declareParameter(context, p.name, p.type, p.optional, higher_ranking, toplevel, sw, dr, coder);
+                        this.declareParameter(context, p.name, p.type, p.optional, p.default_value, higher_ranking, toplevel, sw, dr, coder);
                     }
                 }
                 
@@ -1173,6 +1203,9 @@ public class FactorySiteTextBased
                         throw (PutUpFailure) null; // compiler insists
                     } catch (InvalidClass icls) {
                         PutUpFailure.createAndThrow (context, icls, FactorySiteStringPool.get(context, "0.5.18" /* Cannot put up, scaffold creation for '%(type)[F|%(factory)/R|%(retriever)]' failed */), "type", typename, "factory", factory, "retriever", retriever);
+                        throw (PutUpFailure) null; // compiler insists
+                    } catch (InvalidConfiguration icfg) {
+                        PutUpFailure.createAndThrow (context, icfg, FactorySiteStringPool.get(context, "0.5.18" /* Cannot put up, scaffold creation for '%(type)[F|%(factory)/R|%(retriever)]' failed */), "type", typename, "factory", factory, "retriever", retriever);
                         throw (PutUpFailure) null; // compiler insists
                     }
                     
@@ -1324,7 +1357,24 @@ public class FactorySiteTextBased
                         dr.add(i);
                     }
                 }
-                
+            } else if (build_text instanceof BuildTextSimple) {
+                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, indent + "... simple ..."); }
+                BuildTextSimple bts = (BuildTextSimple) build_text;
+                DataSource ds = null;
+                if (build_text.isExpression(context)) {
+                    ds = new DataSourceGeneric_ExpressionMember(context, checkExpression(context, bts.getText(context), higher_ranking, cocpbt, sw, dr, coder), this, expected_type, source_location_info);
+                } else {
+                    ds = new DataSourceGeneric_Member(context, bts.getText(context), source_location_info);
+                }
+                result = ds;
+                scaffold = null;
+            } else if (build_text instanceof BuildTextDOM) {
+                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, indent + "... DOM ..."); }
+                BuildTextDOM btd = (BuildTextDOM) build_text;
+                DataSource ds = null;
+                ds = new DataSourceGeneric_Member(context, btd.getNode(context), source_location_info);
+                result = ds;
+                scaffold = null;
             } else {
                 PutUpFailure.createAndThrow (context, FactorySiteStringPool.get(context, "0.5.13" /* build_text is neither, as expected, of type BuildTextSimple, BuildTextRef nor of type BuildTextComplex, but of type '%(type)' */), "type", build_text.getClass().getName());
                 throw (PutUpFailure) null; // compiler insists
@@ -1391,7 +1441,7 @@ public class FactorySiteTextBased
                     NotificationContext.sendTrace(context, Notifier.DIAGNOSTICS, indent + FactorySiteStringPool.get(context, "0.5.2" /* (registering Scaffold with OID #%(oid), type is '%(type)') */), "oid", oid, "type",  st == null ? "not defined yet" : st.getName(context));
                 }
                 this.oidmap.add(context, oid, result);
-                    
+
                 // we add this here since otherwise for dynamic oidref
                 // resolution no entries would be found if there's no direct
                 // access to that oid also
@@ -1612,7 +1662,7 @@ public class FactorySiteTextBased
         this.root_arguments = root_arguments;
     }
 
-    static protected RegularExpression parameter_in_signature_re = new RegularExpression("\\s*([A-Za-z0-9_<>\\.]+(?:\\[\\])*)\\s+([^,\\)\\?\\t\\r\\n ]+)\\s*(\\??)\\s*(,?)\\s*");
+    static protected RegularExpression parameter_in_signature_re = new RegularExpression("\\s*([A-Za-z0-9_<>\\.]+(?:\\[\\])*)\\s+([^,\\)\\?\\t\\r\\n ]+)\\s*(?:=\\s*([^,\\?\\r\\n]+))?\\s*(\\??)\\s*(,?)\\s*");
 
     protected String declareParameters(CallContext context, String declaration, DataSourceConnector higher_ranking, boolean toplevel, COCPBuildText cocpbt, StringWriter sw, Vector<Integer> dr, Coder coder) throws PutUpFailure {
         if (declaration == null || declaration.length() == 0) {
@@ -1623,7 +1673,8 @@ public class FactorySiteTextBased
         while (m.find()) {
             String  parameter_type = m.group(1);
             String  parameter_name = m.group(2);
-            boolean optional       = (m.group(3) != null && m.group(3).equals("?"));
+            String  default_value  = m.group(3);
+            boolean optional       = (m.group(4) != null && m.group(4).equals("?"));
 
             Type type = null;
             try {
@@ -1634,27 +1685,36 @@ public class FactorySiteTextBased
             }
 
             if (cocpbt == null) {
-                declareParameter(context, parameter_name, type, optional, higher_ranking, toplevel, sw, dr, coder);
+                declareParameter(context, parameter_name, type, optional, default_value, higher_ranking, toplevel, sw, dr, coder);
             }
 
-            m.appendReplacement(sb, "$2$4");
+            m.appendReplacement(sb, "$2$5");
         }
         m.appendTail(sb);
         return sb.toString();
     }
 
-    protected void declareParameter(CallContext context, String parameter_name, Type parameter_type, boolean optional, DataSourceConnector higher_ranking, boolean toplevel, StringWriter sw, Vector<Integer> dr, Coder coder) throws PutUpFailure {
-
+    protected void declareParameter(CallContext context, String parameter_name, Type parameter_type, boolean optional, String default_value, DataSourceConnector higher_ranking, boolean toplevel, StringWriter sw, Vector<Integer> dr, Coder coder) throws PutUpFailure {
         if (sw != null) {
             dr.add(COCPIndices.BuildText_ParameterToDeclare);
             dr.add(coder.writeText(context, parameter_name));
             dr.add(coder.writeText(context, parameter_type.getId(context)));
             dr.add(coder.writeBoolean(context, optional));
+            dr.add(coder.writeText(context, default_value));
         }
 
         DataSourceConnector dsc = parametermap.tryGet(context, parameter_name);
+        DataSource default_value_ds = (default_value == null ? null : new DataSourceGeneric_ExpressionMember(context, default_value, this, parameter_type, this.site_id + "<DefaultValueOfParameter:" + parameter_name + ">"));
+
         if (dsc == null) {
             dsc = new DataSourceConnector_Parameter(context, parameter_type, parameter_name, higher_ranking, optional, false, this.site_id + "<Parameter:" + parameter_name + ">");
+            if (default_value_ds != null) {
+                try {
+                    dsc.setDefaultValueDataSource(context, default_value_ds);
+                } catch (TypeMismatch tm) {
+                    PutUpFailure.createAndThrow (context, "Unexpected (impossible): provided default value for parameter '%(parname)' does not match type of data source", "parname", parameter_name);
+                }
+            }
             parametermap.set(context, parameter_name, dsc);
         } else {
             Type dsctype = dsc.getType(context);
@@ -1669,6 +1729,11 @@ public class FactorySiteTextBased
                     } else {
                         PutUpFailure.createAndThrow (context, FactorySiteStringPool.get(context, "0.5.21" /* Parameter '%(parname)' is used inconsistent: one occurence expects a type '%(expected1)', while the other occurence expects '%(expected2)' */), "parname", parameter_name, "expected1", dsctype.getName(context), "expected2", parameter_type.getName(context));
                     }
+                }
+            }
+            if (default_value_ds != null) {
+                if (dsc.getDefaultValueDataSource(context) != null) {
+                    PutUpFailure.createAndThrow (context, "Default value for parameter '%(parname)' is defined twice, only one definition is possible", "parname", parameter_name);
                 }
             }
         }
@@ -1745,7 +1810,7 @@ public class FactorySiteTextBased
         dss.setDataSource(context, dsc);
     }
 
-    protected void setParameters(CallContext context, java.util.Map parameters)  throws DoesNotExist, TypeMismatch {
+    protected void setParameters(CallContext context, java.util.Map parameters)  throws ValidationFailure {
         this.resetParameters(context);
 
         if (parameters != null) {
@@ -1755,25 +1820,31 @@ public class FactorySiteTextBased
                 java.util.Map.Entry me = (java.util.Map.Entry) iterator.next();
                 String key = (String) me.getKey();
                 Object o = me.getValue();
-                if (o instanceof FactorySiteOutParameter) {
-                    if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { NotificationContext.sendTrace(context, Notifier.SELF_DIAGNOSTICS, FactorySiteStringPool.get(context, "1.2.20" /* Factory_Aggregate[%(oid)].create(): setting out parameter '%(key)' */), "oid", this, "key", key); }
-                    FactorySiteOutParameter fsop = (FactorySiteOutParameter) o;
-                    this.setOutParameter(context, key, fsop);
-                    if (fsop.getSourceLocationInfo(context) == null) {
-                        fsop.setSourceLocationInfo(context, /* this.site_id + "<OutParameter:" + */ key /* + ">" */);
+                try {
+                    if (o instanceof FactorySiteOutParameter) {
+                        if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { NotificationContext.sendTrace(context, Notifier.SELF_DIAGNOSTICS, FactorySiteStringPool.get(context, "1.2.20" /* Factory_Aggregate[%(oid)].create(): setting out parameter '%(key)' */), "oid", this, "key", key); }
+                        FactorySiteOutParameter fsop = (FactorySiteOutParameter) o;
+                        this.setOutParameter(context, key, fsop);
+                        if (fsop.getSourceLocationInfo(context) == null) {
+                            fsop.setSourceLocationInfo(context, /* this.site_id + "<OutParameter:" + */ key /* + ">" */);
+                        }
+                    } else if (o instanceof FactorySiteOptionalParameter) {
+                        if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { NotificationContext.sendTrace(context, Notifier.SELF_DIAGNOSTICS, FactorySiteStringPool.get(context, "1.2.24" /* Factory_Aggregate[%(oid)].create(): setting optional parameter '%(key)' */), "oid", this, "key", key); }
+                        DataSource ds = new DataSourceGeneric_Member(context, ((FactorySiteOptionalParameter) o).getParameter(context), this.site_id + "<OptionalParameter:" + key + ">");
+                        this.setOptionalParameter(context, key, ds);
+                    } else if (o instanceof FactorySiteNullParameter) {
+                        if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { NotificationContext.sendTrace(context, Notifier.SELF_DIAGNOSTICS, FactorySiteStringPool.get(context, "0.5.22" /* Factory_Aggregate[%(oid)].create(): setting null parameter '%(key)' */), "oid", this, "key", key); }
+                        DataSource ds = new DataSourceNull(context, ((FactorySiteNullParameter) o).getType(context), this.site_id + "<NullParameter:" + key + ">");
+                        this.setOptionalParameter(context, key, ds);
+                    } else {
+                        if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { NotificationContext.sendTrace(context, Notifier.SELF_DIAGNOSTICS, FactorySiteStringPool.get(context, "1.2.11" /* Factory_Aggregate[%(oid)].create(): setting parameter '%(key)' */), "oid", this, "key", key); }
+                        DataSource ds = new DataSourceGeneric_Member(context, o, /* this.site_id + "<Parameter:" + */ key /* + ">"*/);
+                        this.setParameter(context, key, ds);
                     }
-                } else if (o instanceof FactorySiteOptionalParameter) {
-                    if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { NotificationContext.sendTrace(context, Notifier.SELF_DIAGNOSTICS, FactorySiteStringPool.get(context, "1.2.24" /* Factory_Aggregate[%(oid)].create(): setting optional parameter '%(key)' */), "oid", this, "key", key); }
-                    DataSource ds = new DataSourceGeneric_Member(context, ((FactorySiteOptionalParameter) o).getParameter(context), this.site_id + "<OptionalParameter:" + key + ">");
-                    this.setOptionalParameter(context, key, ds);
-                } else if (o instanceof FactorySiteNullParameter) {
-                    if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { NotificationContext.sendTrace(context, Notifier.SELF_DIAGNOSTICS, FactorySiteStringPool.get(context, "0.5.22" /* Factory_Aggregate[%(oid)].create(): setting null parameter '%(key)' */), "oid", this, "key", key); }
-                    DataSource ds = new DataSourceNull(context, ((FactorySiteNullParameter) o).getType(context), this.site_id + "<NullParameter:" + key + ">");
-                    this.setOptionalParameter(context, key, ds);
-                } else {
-                    if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { NotificationContext.sendTrace(context, Notifier.SELF_DIAGNOSTICS, FactorySiteStringPool.get(context, "1.2.11" /* Factory_Aggregate[%(oid)].create(): setting parameter '%(key)' */), "oid", this, "key", key); }
-                    DataSource ds = new DataSourceGeneric_Member(context, o, /* this.site_id + "<Parameter:" + */ key /* + ">"*/);
-                    this.setParameter(context, key, ds);
+                } catch (DoesNotExist dne) {
+                    ValidationFailure.createAndThrow(context, dne, "Invalid parameter '%(parameter)'", "parameter", key);
+                } catch (TypeMismatch tm) {
+                    ValidationFailure.createAndThrow(context, tm, "Invalid parameter '%(parameter)'", "parameter", key);
                 }
             }
         }
@@ -1785,10 +1856,8 @@ public class FactorySiteTextBased
 
         try {
             this.setParameters(context, parameters);
-        } catch (DoesNotExist dne) {
-            return ValidationFailure.createValidationFailure(context, dne, "Invalid parameters");
-        } catch (TypeMismatch tm) {
-            return ValidationFailure.createValidationFailure(context, tm, "Invalid parameters");
+        } catch (ValidationFailure vf) {
+            return vf;
         }
 
         for (IteratorItemIndex_DataSourceConnector_String_ iiidscs = this.parametermap.getNavigator(context);
@@ -2140,13 +2209,11 @@ public class FactorySiteTextBased
                 is.tryGetCurrent(context).reset(context);
             }
         }
+
         try {
             this.setParameters(context, parameters);
-        } catch (DoesNotExist dne) {
-            CustomaryContext.create(Context.create(context)).throwPreConditionViolation(context, dne, "Invalid parameter for FactorySite (should be prevalidated before calling)");
-            throw (ExceptionPreConditionViolation) null; // compiler insists
-        } catch (TypeMismatch tm) {
-            CustomaryContext.create(Context.create(context)).throwPreConditionViolation(context, tm, "Invalid parameter for FactorySite (should be prevalidated before calling)");
+        } catch (ValidationFailure vf) {
+            CustomaryContext.create(Context.create(context)).throwPreConditionViolation(context, vf, "Invalid parameter for FactorySite (should be prevalidated before calling)");
             throw (ExceptionPreConditionViolation) null; // compiler insists
         }
 

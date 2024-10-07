@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite.xml;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -136,7 +136,7 @@ public class BuildTextXMLFactory implements BuildTextFactory {
         }
         if (this.base != null) {
             if (this.bt_by_oid == null) {
-                CustomaryContext.create((Context)context).throwPreConditionViolation(context, "If build text with base attribute is parser, a BuildText-By-OID Map MUST be provided");
+                CustomaryContext.create((Context)context).throwPreConditionViolation(context, "If build text with base attribute is parsed, a BuildText-By-OID Map MUST be provided");
                 throw (ExceptionPreConditionViolation) null; // compiler insists
             }
             if ( ! (this.result instanceof BuildTextComplex)) {

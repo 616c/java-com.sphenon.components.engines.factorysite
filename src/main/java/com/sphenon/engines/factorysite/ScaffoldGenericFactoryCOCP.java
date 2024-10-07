@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -120,14 +120,14 @@ public class ScaffoldGenericFactoryCOCP extends ScaffoldBaseFactory {
         } else {
             if (this.factory_instance == null) {
                 this.factory_instance = (this.cocpaf != null ? this.cocpaf.createFactoryInstance(context, this) : this.cocpbtf.createFactoryInstance(context, this));
-            }
-            if (this.component_type != null) {
-                if (this.cocpaf != null) {
-                    this.cocpaf.setComponentType(context, this, this.component_type);
-                    // [DELETEME] legacy, not implemented anymore - this.cocpbtf 
+                if (this.component_type != null) {
+                    if (this.cocpaf != null) {
+                        this.cocpaf.setComponentType(context, this, this.component_type);
+                        // [DELETEME] legacy, not implemented anymore - this.cocpbtf 
+                    }
                 }
+                this.factoryinstance = this.factory_instance;
             }
-            this.factoryinstance = this.factory_instance;
             return this.factory_instance;
         }
     }
@@ -194,7 +194,7 @@ public class ScaffoldGenericFactoryCOCP extends ScaffoldBaseFactory {
                     
                     local_scope = this.pushScope(context, dsp, true);
                     
-                    it = getForeach(context, dsp);
+                    it = getForeach(context, dsp, local_scope);
                     if (it != null) {
                         for (Object index_object : it) {
                             updateScope(context, dsp, local_scope, index_object);
@@ -244,7 +244,7 @@ public class ScaffoldGenericFactoryCOCP extends ScaffoldBaseFactory {
 
                     local_scope = this.pushScope(context, dsp, true);
 
-                    it = getForeach(context, dsp);
+                    it = getForeach(context, dsp, local_scope);
                     if (it != null) {
                         for (Object index_object : it) {
                             updateScope(context, dsp, local_scope, index_object);

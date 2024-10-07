@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -71,8 +71,11 @@ import java.util.regex.*;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Vector;
 import java.util.Hashtable;
+import java.util.Collections;
+import java.util.Comparator;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -132,10 +135,56 @@ public class ScaffoldFactory {
         cache_by_array = new HashMap<Type,Object>();
     }
 
+    static protected Map<Type,GenericClass.Factory>     generic_class_factories;
+    static protected Map<Type,GenericFactory.Factory>   generic_factory_factories;
+    static protected Map<Type,GenericRetriever.Factory> generic_retriever_factories;
+
+    static public void register(CallContext context, GenericClass.Factory generic_class_factory) {
+        List<Type> handled_types = generic_class_factory.getHandledTypes(context);
+        if (generic_class_factories == null) {
+            generic_class_factories = new HashMap<Type,GenericClass.Factory>();
+        }
+        for (Type handled_type : handled_types) {
+            generic_class_factories.put(handled_type, generic_class_factory);
+        }
+    }
+
+    static public GenericClass.Factory lookupGenericClassFactory(CallContext context, Type handled_type) {
+        return (generic_class_factories == null ? null : generic_class_factories.get(handled_type));
+    }
+
+    static public void register(CallContext context, GenericFactory.Factory generic_factory_factory) {
+        List<Type> handled_types = generic_factory_factory.getHandledTypes(context);
+        if (generic_factory_factories == null) {
+            generic_factory_factories = new HashMap<Type,GenericFactory.Factory>();
+        }
+        for (Type handled_type : handled_types) {
+            generic_factory_factories.put(handled_type, generic_factory_factory);
+        }
+    }
+
+    static public GenericFactory.Factory lookupGenericFactoryFactory(CallContext context, Type handled_type) {
+        return (generic_factory_factories == null ? null : generic_factory_factories.get(handled_type));
+    }
+
+    static public void register(CallContext context, GenericRetriever.Factory generic_retriever_factory) {
+        List<Type> handled_types = generic_retriever_factory.getHandledTypes(context);
+        if (generic_retriever_factories == null) {
+            generic_retriever_factories = new HashMap<Type,GenericRetriever.Factory>();
+        }
+        for (Type handled_type : handled_types) {
+            generic_retriever_factories.put(handled_type, generic_retriever_factory);
+        }
+    }
+    
+    static public GenericRetriever.Factory lookupGenericRetrieverFactory(CallContext context, Type handled_type) {
+        return (generic_retriever_factories == null ? null : generic_retriever_factories.get(handled_type));
+    }
+
     public ScaffoldFactory (CallContext context) {
     }
 
-    public Scaffold get (CallContext call_context, Type type, String factory_name, String retriever_name, String method_name, Vector_ScaffoldParameter_long_ parameters, Map_TypeOrNull_String_ parameters_by_name, boolean allow_dynamic_type_check, boolean allow_missing_arguments, String listener, boolean is_singleton, boolean have_dynamic_parameters, FactorySite factory_site, String oid, int pass, Vector<String[]> pre_conditions, Vector<String[]> post_conditions, Vector<String[]>  pre_build_scripts, Vector<String[]>  post_build_scripts, String source_location_info, String problem_monitor_oid) throws InvalidFactory, InvalidRetriever, InvalidClass {
+    public Scaffold get (CallContext call_context, Type type, String factory_name, String retriever_name, String method_name, Vector_ScaffoldParameter_long_ parameters, Map_TypeOrNull_String_ parameters_by_name, boolean allow_dynamic_type_check, boolean allow_missing_arguments, String listener, boolean is_singleton, boolean have_dynamic_parameters, FactorySite factory_site, String oid, int pass, Vector<String[]> pre_conditions, Vector<String[]> post_conditions, Vector<String[]>  pre_build_scripts, Vector<String[]>  post_build_scripts, String source_location_info, String problem_monitor_oid) throws InvalidFactory, InvalidRetriever, InvalidClass, InvalidConfiguration {
         Context context = Context.create(call_context);
         CustomaryContext cc = CustomaryContext.create(context);
 
@@ -168,6 +217,7 @@ public class ScaffoldFactory {
             }
         }
         items.append(context, new_item);
+        sortByPriority(context, items);
     }
 
     public void preloadScaffoldFactory (CallContext call_context, Type type, Type factory_type, boolean allow_dynamic_type_check) throws InvalidFactory {
@@ -189,7 +239,7 @@ public class ScaffoldFactory {
             preload_cache_by_type.put(type, results);
         }
 
-        checkAndAppend(context, results, getSpecificScaffoldFactory_Factory(context, type, factory_type, null, allow_dynamic_type_check, false));
+        checkAndAppend(context, results, getSpecificScaffoldFactory_Factory(context, type, factory_type, null, allow_dynamic_type_check, false, null));
 
         if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Preloaded"); }
     }
@@ -213,7 +263,7 @@ public class ScaffoldFactory {
             preload_cache_by_type.put(type, results);
         }
 
-        checkAndAppend(context, results, getSpecificScaffoldFactory_Retriever(context, type, retriever_type, null, allow_dynamic_type_check, false));
+        checkAndAppend(context, results, getSpecificScaffoldFactory_Retriever(context, type, retriever_type, null, allow_dynamic_type_check, false, null));
 
         if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Preloaded"); }
     }
@@ -237,7 +287,7 @@ public class ScaffoldFactory {
             preload_cache_by_type.put(type, results);
         }
 
-        checkAndAppend(context, results, getSpecificScaffoldFactory_Class(context, type, class_type, null, allow_dynamic_type_check, false));
+        checkAndAppend(context, results, getSpecificScaffoldFactory_Class(context, type, class_type, null, allow_dynamic_type_check, false, null));
 
         if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Preloaded"); }
     }
@@ -306,7 +356,7 @@ public class ScaffoldFactory {
             if (goals_enabled) { cc.createSubGoal(context, "Creating type (instance or class) directly via explicitly given method and wire afterwards"); }
             try {
                 results = Factory_Vector_SpecificScaffoldFactory_long_.construct(context);
-                checkAndAppend(context, results, getSpecificScaffoldFactory_Class(context, type, type, method_name, allow_dynamic_type_check, true));
+                checkAndAppend(context, results, getSpecificScaffoldFactory_Class(context, type, type, method_name, allow_dynamic_type_check, true, null));
             } catch (InvalidClass icls) {
                 if (goals_enabled) { cc.missed(context); }
                 if (goals_enabled) { cc.doneSubGoals(context); }
@@ -334,7 +384,7 @@ public class ScaffoldFactory {
                 Type factory_type = TypeManager.tryGet(context, factory_name);
                 if (factory_type != null) {
                     results = Factory_Vector_SpecificScaffoldFactory_long_.construct(context);
-                    checkAndAppend(context, results, getSpecificScaffoldFactory_Factory(context, type, factory_type, method_name, allow_dynamic_type_check, true));
+                    checkAndAppend(context, results, getSpecificScaffoldFactory_Factory(context, type, factory_type, method_name, allow_dynamic_type_check, true, null));
                 } else {
                     if (goals_enabled) { cc.missed(context); }
                     if (goals_enabled) { cc.doneSubGoals(context); }
@@ -369,7 +419,7 @@ public class ScaffoldFactory {
                 Type retriever_type = TypeManager.tryGet(context, retriever_name);
                 if (retriever_type != null) {
                     results = Factory_Vector_SpecificScaffoldFactory_long_.construct(context);
-                    checkAndAppend(context, results, getSpecificScaffoldFactory_Retriever(context, type, retriever_type, method_name, allow_dynamic_type_check, true));
+                    checkAndAppend(context, results, getSpecificScaffoldFactory_Retriever(context, type, retriever_type, method_name, allow_dynamic_type_check, true, null));
                 } else {
                     if (goals_enabled) { cc.missed(context); }
                     if (goals_enabled) { cc.doneSubGoals(context); }
@@ -419,121 +469,31 @@ public class ScaffoldFactory {
             if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success, using generic array factory"); }
         } else {
 
-            Class targetclass = null;
-            String typename = null;
-            if (type instanceof JavaType) {
-                JavaType jt = (JavaType) type;
-                targetclass = jt.getJavaClass(context);
-                typename = jt.getJavaClassName(context);
-            } else if (type instanceof TypeParametrised) {
-                TypeParametrised tp = (TypeParametrised) type;
-                if (tp.getBaseType(context) instanceof JavaType) {
-                    JavaType jt = (JavaType) tp.getBaseType(context);
-                    targetclass = jt.getJavaClass(context);
-                    typename = jt.getJavaClassName(context);
-                } else {
-                    cc.throwLimitation(context, "Type not an instance of 'JavaType', but of '%(class)'", "class", tp.getBaseType(context).getClass());
-                    throw (ExceptionLimitation) null;
-                }
-            } else {
-                cc.throwLimitation(context, "Type neither an instance of 'JavaType' nor of 'TypeParametrised', but of '%(class)'", "class", type.getClass());
-                throw (ExceptionLimitation) null;
-            }
+            Type plain_type = TypeManager.erase(context, type);
 
-            if (goals_enabled) { cc.createNextGoal(context, "Searching for and examining 'Factory_'"); }
-            {
-                boolean got_one = false;
+            if (plain_type instanceof JavaType) {
+                JavaType jt = (JavaType) plain_type;
+                Class targetclass = jt.getJavaClass(context);
+                String typename = jt.getJavaClassName(context);
 
-                int pos = typename.lastIndexOf('.');
-                SpecificScaffoldFactory result = null;
-                Type factory_type = null;
-                String name_to_try = null;
-                if (pos == -1) {
-                    try {
-                        name_to_try = "Factory_" + typename;
-                        factory_type = TypeManager.tryGet(context, name_to_try);
-                        if (factory_type == null) {
-                            name_to_try = "Class_Factory_" + typename;
+                if (goals_enabled) { cc.createNextGoal(context, "Searching for and examining 'Factory_'"); }
+                {
+                    boolean got_one = false;
+
+                    int pos = typename.lastIndexOf('.');
+                    SpecificScaffoldFactory result = null;
+                    Type factory_type = null;
+                    String name_to_try = null;
+                    if (pos == -1) {
+                        try {
+                            name_to_try = "Factory_" + typename;
                             factory_type = TypeManager.tryGet(context, name_to_try);
-                        }
-                        if (factory_type != null) {
-                            result = getSpecificScaffoldFactory_Factory(context, type, factory_type, null, allow_dynamic_type_check, true);
-                            checkAndAppend(context, results, result);
-                            got_one = true;
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(factory)' via TypeManager", "factory", name_to_try); }
-                        } else {
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': class not found", "factory", name_to_try); }
-                        }
-                    } catch (InvalidFactory ifac) {
-                        if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", ifac); }
-                    }
-                } else {
-                    String package_name = typename.substring(0, pos+1);
-                    String class_name = typename.substring(pos+1);
-                    try {
-                        name_to_try = package_name + "Factory_" + class_name;
-                        Class facclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, name_to_try);
-                        factory_type = TypeManager.get(context, facclass);
-                        result = getSpecificScaffoldFactory_Factory(context, type, factory_type, null, allow_dynamic_type_check, true);
-                        checkAndAppend(context, results, result);
-                        got_one = true;
-                        if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(factory)'", "factory", name_to_try); }
-                    } catch (InvalidFactory ifac) {
-                        if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", ifac); }
-                    } catch (ClassNotFoundException cnfe) {
-                        if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", cnfe); }
-                    }
-                    if (got_one == false) {
-                        try {
-                            name_to_try = package_name + "Class_Factory_" + class_name;
-                            Class facclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, name_to_try);
-                            factory_type = TypeManager.get(context, facclass);
-                            result = getSpecificScaffoldFactory_Factory(context, type, factory_type, null, allow_dynamic_type_check, true);
-                            checkAndAppend(context, results, result);
-                            got_one = true;
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(factory)'", "factory", name_to_try); }
-                        } catch (InvalidFactory ifac) {
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", ifac); }
-                        } catch (ClassNotFoundException cnfe) {
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", cnfe); }
-                        }
-                    }
-                    if (got_one == false) {
-                        try {
-                            name_to_try = package_name + "factories.Factory_" + class_name;
-                            Class facclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, name_to_try);
-                            factory_type = TypeManager.get(context, facclass);
-                            result = getSpecificScaffoldFactory_Factory(context, type, factory_type, null, allow_dynamic_type_check, true);
-                            checkAndAppend(context, results, result);
-                            got_one = true;
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(factory)'", "factory", name_to_try); }
-                        } catch (InvalidFactory ifac) {
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", ifac); }
-                        } catch (ClassNotFoundException cnfe) {
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", cnfe); }
-                        }
-                    }
-                    if (got_one == false) {
-                        try {
-                            name_to_try = package_name + "factories.Class_Factory_" + class_name;
-                            Class facclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, name_to_try);
-                            factory_type = TypeManager.get(context, facclass);
-                            result = getSpecificScaffoldFactory_Factory(context, type, factory_type, null, allow_dynamic_type_check, true);
-                            checkAndAppend(context, results, result);
-                            got_one = true;
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(factory)'", "factory", name_to_try); }
-                        } catch (InvalidFactory ifac) {
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", ifac); }
-                        } catch (ClassNotFoundException cnfe) {
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", cnfe); }
-                        }
-                    }
-                    if (got_one == false) {
-                        try {
-                            name_to_try = "Factory_" + class_name;
-                            factory_type = TypeManager.tryGet(context, name_to_try);
+                            if (factory_type == null) {
+                                name_to_try = "Class_Factory_" + typename;
+                                factory_type = TypeManager.tryGet(context, name_to_try);
+                            }
                             if (factory_type != null) {
-                                result = getSpecificScaffoldFactory_Factory(context, type, factory_type, null, allow_dynamic_type_check, true);
+                                result = getSpecificScaffoldFactory_Factory(context, type, factory_type, null, allow_dynamic_type_check, true, null);
                                 checkAndAppend(context, results, result);
                                 got_one = true;
                                 if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(factory)' via TypeManager", "factory", name_to_try); }
@@ -543,124 +503,124 @@ public class ScaffoldFactory {
                         } catch (InvalidFactory ifac) {
                             if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", ifac); }
                         }
-                    }
-                    if (got_one == false) {
+                    } else {
+                        String package_name = typename.substring(0, pos+1);
+                        String class_name = typename.substring(pos+1);
                         try {
-                            name_to_try = "Class_Factory_" + class_name;
-                            factory_type = TypeManager.tryGet(context, name_to_try);
-                            if (factory_type != null) {
-                                result = getSpecificScaffoldFactory_Factory(context, type, factory_type, null, allow_dynamic_type_check, true);
-                                checkAndAppend(context, results, result);
-                                got_one = true;
-                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(factory)' via TypeManager", "factory", name_to_try); }
-                            } else {
-                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': class not found", "factory", name_to_try); }
-                            }
+                            name_to_try = package_name + "Factory_" + class_name;
+                            Class facclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, name_to_try);
+                            factory_type = TypeManager.get(context, facclass);
+                            result = getSpecificScaffoldFactory_Factory(context, type, factory_type, null, allow_dynamic_type_check, true, null);
+                            checkAndAppend(context, results, result);
+                            got_one = true;
+                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(factory)'", "factory", name_to_try); }
                         } catch (InvalidFactory ifac) {
                             if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", ifac); }
+                        } catch (ClassNotFoundException cnfe) {
+                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", cnfe); }
+                        }
+                        if (got_one == false) {
+                            try {
+                                name_to_try = package_name + "Class_Factory_" + class_name;
+                                Class facclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, name_to_try);
+                                factory_type = TypeManager.get(context, facclass);
+                                result = getSpecificScaffoldFactory_Factory(context, type, factory_type, null, allow_dynamic_type_check, true, null);
+                                checkAndAppend(context, results, result);
+                                got_one = true;
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(factory)'", "factory", name_to_try); }
+                            } catch (InvalidFactory ifac) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", ifac); }
+                            } catch (ClassNotFoundException cnfe) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", cnfe); }
+                            }
+                        }
+                        if (got_one == false) {
+                            try {
+                                name_to_try = package_name + "factories.Factory_" + class_name;
+                                Class facclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, name_to_try);
+                                factory_type = TypeManager.get(context, facclass);
+                                result = getSpecificScaffoldFactory_Factory(context, type, factory_type, null, allow_dynamic_type_check, true, null);
+                                checkAndAppend(context, results, result);
+                                got_one = true;
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(factory)'", "factory", name_to_try); }
+                            } catch (InvalidFactory ifac) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", ifac); }
+                            } catch (ClassNotFoundException cnfe) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", cnfe); }
+                            }
+                        }
+                        if (got_one == false) {
+                            try {
+                                name_to_try = package_name + "factories.Class_Factory_" + class_name;
+                                Class facclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, name_to_try);
+                                factory_type = TypeManager.get(context, facclass);
+                                result = getSpecificScaffoldFactory_Factory(context, type, factory_type, null, allow_dynamic_type_check, true, null);
+                                checkAndAppend(context, results, result);
+                                got_one = true;
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(factory)'", "factory", name_to_try); }
+                            } catch (InvalidFactory ifac) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", ifac); }
+                            } catch (ClassNotFoundException cnfe) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", cnfe); }
+                            }
+                        }
+                        if (got_one == false) {
+                            try {
+                                name_to_try = "Factory_" + class_name;
+                                factory_type = TypeManager.tryGet(context, name_to_try);
+                                if (factory_type != null) {
+                                    result = getSpecificScaffoldFactory_Factory(context, type, factory_type, null, allow_dynamic_type_check, true, null);
+                                    checkAndAppend(context, results, result);
+                                    got_one = true;
+                                    if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(factory)' via TypeManager", "factory", name_to_try); }
+                                } else {
+                                    if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': class not found", "factory", name_to_try); }
+                                }
+                            } catch (InvalidFactory ifac) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", ifac); }
+                            }
+                        }
+                        if (got_one == false) {
+                            try {
+                                name_to_try = "Class_Factory_" + class_name;
+                                factory_type = TypeManager.tryGet(context, name_to_try);
+                                if (factory_type != null) {
+                                    result = getSpecificScaffoldFactory_Factory(context, type, factory_type, null, allow_dynamic_type_check, true, null);
+                                    checkAndAppend(context, results, result);
+                                    got_one = true;
+                                    if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(factory)' via TypeManager", "factory", name_to_try); }
+                                } else {
+                                    if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': class not found", "factory", name_to_try); }
+                                }
+                            } catch (InvalidFactory ifac) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(factory)': %(cause)", "factory", name_to_try, "cause", ifac); }
+                            }
                         }
                     }
+                    if (got_one) {
+                        if (goals_enabled) { cc.done(context); }
+                    } else {
+                        if (goals_enabled) { cc.missed(context); }
+                    }
                 }
-                if (got_one) {
-                    if (goals_enabled) { cc.done(context); }
-                } else {
-                    if (goals_enabled) { cc.missed(context); }
-                }
-            }
 
-            if (goals_enabled) { cc.createNextGoal(context, "Searching for and examining 'Retriever_'"); }
-            {
-                boolean got_one = false;
-                int pos = typename.lastIndexOf('.');
-                SpecificScaffoldFactory result = null;
-                Type retriever_type = null;
-                String name_to_try = null;
-                if (pos == -1) {
-                    try {
-                        name_to_try = "Retriever_" + typename;
-                        retriever_type = TypeManager.tryGet(context, name_to_try);
-                        if (retriever_type == null) {
-                            name_to_try = "Class_Retriever_" + typename;
+                if (goals_enabled) { cc.createNextGoal(context, "Searching for and examining 'Retriever_'"); }
+                {
+                    boolean got_one = false;
+                    int pos = typename.lastIndexOf('.');
+                    SpecificScaffoldFactory result = null;
+                    Type retriever_type = null;
+                    String name_to_try = null;
+                    if (pos == -1) {
+                        try {
+                            name_to_try = "Retriever_" + typename;
                             retriever_type = TypeManager.tryGet(context, name_to_try);
-                        }
-                        if (retriever_type != null) {
-                            result = getSpecificScaffoldFactory_Retriever(context, type, retriever_type, null, allow_dynamic_type_check, true);
-                            checkAndAppend(context, results, result);
-                            got_one = true;
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(retriever)' via TypeManager", "retriever", name_to_try); }
-                        } else {
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': class not found", "retriever", name_to_try); }
-                        }
-                    } catch (InvalidRetriever iret) {
-                        if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", iret); }
-                    }
-                } else {
-                    String package_name = typename.substring(0, pos+1);
-                    String class_name = typename.substring(pos+1);
-                    try {
-                        name_to_try = package_name + "Retriever_" + class_name;
-                        Class facclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, name_to_try);
-                        retriever_type = TypeManager.get(context, facclass);
-                        result = getSpecificScaffoldFactory_Retriever(context, type, retriever_type, null, allow_dynamic_type_check, true);
-                        checkAndAppend(context, results, result);
-                        got_one = true;
-                        if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(retriever)'", "retriever", name_to_try); }
-                    } catch (InvalidRetriever iret) {
-                        if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", iret); }
-                    } catch (ClassNotFoundException cnfe) {
-                        if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", cnfe); }
-                    }
-                    if (got_one == false) {
-                        try {
-                            name_to_try = package_name + "Class_Retriever_" + class_name;
-                            Class facclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, name_to_try);
-                            retriever_type = TypeManager.get(context, facclass);
-                            result = getSpecificScaffoldFactory_Retriever(context, type, retriever_type, null, allow_dynamic_type_check, true);
-                            checkAndAppend(context, results, result);
-                            got_one = true;
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(retriever)'", "retriever", name_to_try); }
-                        } catch (InvalidRetriever iret) {
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", iret); }
-                        } catch (ClassNotFoundException cnfe) {
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", cnfe); }
-                        }
-                    }
-                    if (got_one == false) {
-                        try {
-                            name_to_try = package_name + "factories.Retriever_" + class_name;
-                            Class facclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, name_to_try);
-                            retriever_type = TypeManager.get(context, facclass);
-                            result = getSpecificScaffoldFactory_Retriever(context, type, retriever_type, null, allow_dynamic_type_check, true);
-                            checkAndAppend(context, results, result);
-                            got_one = true;
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(retriever)'", "retriever", name_to_try); }
-                        } catch (InvalidRetriever iret) {
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", iret); }
-                        } catch (ClassNotFoundException cnfe) {
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", cnfe); }
-                        }
-                    }
-                    if (got_one == false) {
-                        try {
-                            name_to_try = package_name + "factories.Class_Retriever_" + class_name;
-                            Class facclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, name_to_try);
-                            retriever_type = TypeManager.get(context, facclass);
-                            result = getSpecificScaffoldFactory_Retriever(context, type, retriever_type, null, allow_dynamic_type_check, true);
-                            checkAndAppend(context, results, result);
-                            got_one = true;
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(retriever)'", "retriever", name_to_try); }
-                        } catch (InvalidRetriever iret) {
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", iret); }
-                        } catch (ClassNotFoundException cnfe) {
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", cnfe); }
-                        }
-                    }
-                    if (got_one == false) {
-                        try {
-                            name_to_try = "Retriever_" + class_name;
-                            retriever_type = TypeManager.tryGet(context, name_to_try);
+                            if (retriever_type == null) {
+                                name_to_try = "Class_Retriever_" + typename;
+                                retriever_type = TypeManager.tryGet(context, name_to_try);
+                            }
                             if (retriever_type != null) {
-                                result = getSpecificScaffoldFactory_Retriever(context, type, retriever_type, null, allow_dynamic_type_check, true);
+                                result = getSpecificScaffoldFactory_Retriever(context, type, retriever_type, null, allow_dynamic_type_check, true, null);
                                 checkAndAppend(context, results, result);
                                 got_one = true;
                                 if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(retriever)' via TypeManager", "retriever", name_to_try); }
@@ -670,91 +630,153 @@ public class ScaffoldFactory {
                         } catch (InvalidRetriever iret) {
                             if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", iret); }
                         }
-                    }
-                    if (got_one == false) {
+                    } else {
+                        String package_name = typename.substring(0, pos+1);
+                        String class_name = typename.substring(pos+1);
                         try {
-                            name_to_try = "Class_Retriever_" + class_name;
-                            retriever_type = TypeManager.tryGet(context, name_to_try);
-                            if (retriever_type != null) {
-                                result = getSpecificScaffoldFactory_Retriever(context, type, retriever_type, null, allow_dynamic_type_check, true);
-                                checkAndAppend(context, results, result);
-                                got_one = true;
-                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(retriever)' via TypeManager", "retriever", name_to_try); }
-                            } else {
-                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': class not found", "retriever", name_to_try); }
-                            }
-                        } catch (InvalidRetriever iret) {
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", iret); }
-                        }
-                    }
-                }
-                if (got_one) {
-                    if (goals_enabled) { cc.done(context); }
-                } else {
-                    if (goals_enabled) { cc.missed(context); }
-                }
-            }
-
-            if (goals_enabled) { cc.createNextGoal(context, "Searching for and examining 'Class_'"); }
-            {
-                boolean got_one = false;
-                int pos = typename.lastIndexOf('.');
-                SpecificScaffoldFactory result = null;
-                Type class_type = null;
-                String name_to_try = null;
-                if (    try_type_itself
-                     && targetclass != null
-                     && targetclass.isInterface() == false
-                     && targetclass.isEnum() == false
-                     && targetclass.isArray() == false
-                     && targetclass.isPrimitive() == false
-                   ) {
-                    try {
-                        result = getSpecificScaffoldFactory_Class(context, type, type, null, allow_dynamic_type_check, true);
-                        checkAndAppend(context, results, result);
-                        got_one = true;
-                        if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(class)' via TypeManager", "class", typename); }
-                    } catch (InvalidClass iret) {
-                        if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(class)': %(cause)", "class", typename, "cause", iret); }
-                    }
-                }
-                if (pos == -1) {
-                    try {
-                        name_to_try = "Class_" + typename;
-                        class_type = TypeManager.tryGet(context, name_to_try);
-                        if (class_type != null) {
-                            result = getSpecificScaffoldFactory_Class(context, type, class_type, null, allow_dynamic_type_check, true);
+                            name_to_try = package_name + "Retriever_" + class_name;
+                            Class facclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, name_to_try);
+                            retriever_type = TypeManager.get(context, facclass);
+                            result = getSpecificScaffoldFactory_Retriever(context, type, retriever_type, null, allow_dynamic_type_check, true, null);
                             checkAndAppend(context, results, result);
                             got_one = true;
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(class)' via TypeManager", "class", name_to_try); }
-                        } else {
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(class)': class not found", "class", name_to_try); }
+                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(retriever)'", "retriever", name_to_try); }
+                        } catch (InvalidRetriever iret) {
+                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", iret); }
+                        } catch (ClassNotFoundException cnfe) {
+                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", cnfe); }
                         }
-                    } catch (InvalidClass iret) {
-                        if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(class)': %(cause)", "class", name_to_try, "cause", iret); }
+                        if (got_one == false) {
+                            try {
+                                name_to_try = package_name + "Class_Retriever_" + class_name;
+                                Class facclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, name_to_try);
+                                retriever_type = TypeManager.get(context, facclass);
+                                result = getSpecificScaffoldFactory_Retriever(context, type, retriever_type, null, allow_dynamic_type_check, true, null);
+                                checkAndAppend(context, results, result);
+                                got_one = true;
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(retriever)'", "retriever", name_to_try); }
+                            } catch (InvalidRetriever iret) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", iret); }
+                            } catch (ClassNotFoundException cnfe) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", cnfe); }
+                            }
+                        }
+                        if (got_one == false) {
+                            try {
+                                name_to_try = package_name + "factories.Retriever_" + class_name;
+                                Class facclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, name_to_try);
+                                retriever_type = TypeManager.get(context, facclass);
+                                result = getSpecificScaffoldFactory_Retriever(context, type, retriever_type, null, allow_dynamic_type_check, true, null);
+                                checkAndAppend(context, results, result);
+                                got_one = true;
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(retriever)'", "retriever", name_to_try); }
+                            } catch (InvalidRetriever iret) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", iret); }
+                            } catch (ClassNotFoundException cnfe) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", cnfe); }
+                            }
+                        }
+                        if (got_one == false) {
+                            try {
+                                name_to_try = package_name + "factories.Class_Retriever_" + class_name;
+                                Class facclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, name_to_try);
+                                retriever_type = TypeManager.get(context, facclass);
+                                result = getSpecificScaffoldFactory_Retriever(context, type, retriever_type, null, allow_dynamic_type_check, true, null);
+                                checkAndAppend(context, results, result);
+                                got_one = true;
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(retriever)'", "retriever", name_to_try); }
+                            } catch (InvalidRetriever iret) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", iret); }
+                            } catch (ClassNotFoundException cnfe) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", cnfe); }
+                            }
+                        }
+                        if (got_one == false) {
+                            try {
+                                name_to_try = "Retriever_" + class_name;
+                                retriever_type = TypeManager.tryGet(context, name_to_try);
+                                if (retriever_type != null) {
+                                    result = getSpecificScaffoldFactory_Retriever(context, type, retriever_type, null, allow_dynamic_type_check, true, null);
+                                    checkAndAppend(context, results, result);
+                                    got_one = true;
+                                    if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(retriever)' via TypeManager", "retriever", name_to_try); }
+                                } else {
+                                    if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': class not found", "retriever", name_to_try); }
+                                }
+                            } catch (InvalidRetriever iret) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", iret); }
+                            }
+                        }
+                        if (got_one == false) {
+                            try {
+                                name_to_try = "Class_Retriever_" + class_name;
+                                retriever_type = TypeManager.tryGet(context, name_to_try);
+                                if (retriever_type != null) {
+                                    result = getSpecificScaffoldFactory_Retriever(context, type, retriever_type, null, allow_dynamic_type_check, true, null);
+                                    checkAndAppend(context, results, result);
+                                    got_one = true;
+                                    if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(retriever)' via TypeManager", "retriever", name_to_try); }
+                                } else {
+                                    if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': class not found", "retriever", name_to_try); }
+                                }
+                            } catch (InvalidRetriever iret) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(retriever)': %(cause)", "retriever", name_to_try, "cause", iret); }
+                            }
+                        }
                     }
-                } else {
-                    String package_name = typename.substring(0, pos+1);
-                    String class_name = typename.substring(pos+1);
-                    try {
-                        name_to_try = package_name + "Class_" + class_name;
-                        Class facclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, name_to_try);
-                        class_type = TypeManager.get(context, facclass);
-                        result = getSpecificScaffoldFactory_Class(context, type, class_type, null, allow_dynamic_type_check, true);
-                        checkAndAppend(context, results, result);
-                        got_one = true;
-                        if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(class)'", "class", name_to_try); }
-                    } catch (InvalidClass iret) {
-                        if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(class)': %(cause)", "class", name_to_try, "cause", iret); }
-                    } catch (ClassNotFoundException cnfe) {
-                        if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(class)': %(cause)", "class", name_to_try, "cause", cnfe); }
+                    if (got_one) {
+                        if (goals_enabled) { cc.done(context); }
+                    } else {
+                        if (goals_enabled) { cc.missed(context); }
                     }
-                    if (got_one == false) {
+                }
+
+                if (goals_enabled) { cc.createNextGoal(context, "Searching for and examining 'Class_'"); }
+                {
+                    boolean got_one = false;
+                    int pos = typename.lastIndexOf('.');
+                    SpecificScaffoldFactory result = null;
+                    Type class_type = null;
+                    String name_to_try = null;
+                    if (    try_type_itself
+                         && targetclass != null
+                         && targetclass.isInterface() == false
+                         && targetclass.isEnum() == false
+                         && targetclass.isArray() == false
+                         && targetclass.isPrimitive() == false
+                       ) {
                         try {
-                            name_to_try = package_name + "classes.Class_" + class_name;
+                            result = getSpecificScaffoldFactory_Class(context, type, type, null, allow_dynamic_type_check, true, null);
+                            checkAndAppend(context, results, result);
+                            got_one = true;
+                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(class)' via TypeManager", "class", typename); }
+                        } catch (InvalidClass iret) {
+                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(class)': %(cause)", "class", typename, "cause", iret); }
+                        }
+                    }
+                    if (pos == -1) {
+                        try {
+                            name_to_try = "Class_" + typename;
+                            class_type = TypeManager.tryGet(context, name_to_try);
+                            if (class_type != null) {
+                                result = getSpecificScaffoldFactory_Class(context, type, class_type, null, allow_dynamic_type_check, true, null);
+                                checkAndAppend(context, results, result);
+                                got_one = true;
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(class)' via TypeManager", "class", name_to_try); }
+                            } else {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(class)': class not found", "class", name_to_try); }
+                            }
+                        } catch (InvalidClass iret) {
+                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(class)': %(cause)", "class", name_to_try, "cause", iret); }
+                        }
+                    } else {
+                        String package_name = typename.substring(0, pos+1);
+                        String class_name = typename.substring(pos+1);
+                        try {
+                            name_to_try = package_name + "Class_" + class_name;
                             Class facclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, name_to_try);
                             class_type = TypeManager.get(context, facclass);
-                            result = getSpecificScaffoldFactory_Class(context, type, class_type, null, allow_dynamic_type_check, true);
+                            result = getSpecificScaffoldFactory_Class(context, type, class_type, null, allow_dynamic_type_check, true, null);
                             checkAndAppend(context, results, result);
                             got_one = true;
                             if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(class)'", "class", name_to_try); }
@@ -763,72 +785,127 @@ public class ScaffoldFactory {
                         } catch (ClassNotFoundException cnfe) {
                             if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(class)': %(cause)", "class", name_to_try, "cause", cnfe); }
                         }
-                    }
-                    if (got_one == false) {
-                        try {
-                            name_to_try = "Class_" + class_name;
-                            class_type = TypeManager.tryGet(context, name_to_try);
-                            if (class_type != null) {
-                                result = getSpecificScaffoldFactory_Class(context, type, class_type, null, allow_dynamic_type_check, true);
+                        if (got_one == false) {
+                            try {
+                                name_to_try = package_name + "classes.Class_" + class_name;
+                                Class facclass = com.sphenon.basics.cache.ClassCache.getClassForName(context, name_to_try);
+                                class_type = TypeManager.get(context, facclass);
+                                result = getSpecificScaffoldFactory_Class(context, type, class_type, null, allow_dynamic_type_check, true, null);
                                 checkAndAppend(context, results, result);
                                 got_one = true;
-                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(class)' via TypeManager", "class", name_to_try); }
-                            } else {
-                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(class)': class not found", "class", name_to_try); }
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(class)'", "class", name_to_try); }
+                            } catch (InvalidClass iret) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(class)': %(cause)", "class", name_to_try, "cause", iret); }
+                            } catch (ClassNotFoundException cnfe) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(class)': %(cause)", "class", name_to_try, "cause", cnfe); }
                             }
-                        } catch (InvalidClass iret) {
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(class)': %(cause)", "class", name_to_try, "cause", iret); }
+                        }
+                        if (got_one == false) {
+                            try {
+                                name_to_try = "Class_" + class_name;
+                                class_type = TypeManager.tryGet(context, name_to_try);
+                                if (class_type != null) {
+                                    result = getSpecificScaffoldFactory_Class(context, type, class_type, null, allow_dynamic_type_check, true, null);
+                                    checkAndAppend(context, results, result);
+                                    got_one = true;
+                                    if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(class)' via TypeManager", "class", name_to_try); }
+                                } else {
+                                    if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(class)': class not found", "class", name_to_try); }
+                                }
+                            } catch (InvalidClass iret) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(class)': %(cause)", "class", name_to_try, "cause", iret); }
+                            }
+                        }
+                        if (got_one == false) {
+                            try {
+                                name_to_try = class_name;
+                                class_type = type; // TypeManager.tryGet(context, name_to_try);
+                                if (class_type != null) {
+                                    result = getSpecificScaffoldFactory_Class(context, type, class_type, null, allow_dynamic_type_check, true, null);
+                                    checkAndAppend(context, results, result);
+                                    got_one = true;
+                                    if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(class)' via TypeManager", "class", name_to_try); }
+                                } else {
+                                    if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(class)': class not found", "class", name_to_try); }
+                                }
+                            } catch (InvalidClass iret) {
+                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(class)': %(cause)", "class", name_to_try, "cause", iret); }
+                            }
                         }
                     }
-                    if (got_one == false) {
-                        try {
-                            name_to_try = class_name;
-                            class_type = type; // TypeManager.tryGet(context, name_to_try);
-                            if (class_type != null) {
-                                result = getSpecificScaffoldFactory_Class(context, type, class_type, null, allow_dynamic_type_check, true);
-                                checkAndAppend(context, results, result);
-                                got_one = true;
-                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success while trying '%(class)' via TypeManager", "class", name_to_try); }
-                            } else {
-                                if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(class)': class not found", "class", name_to_try); }
-                            }
-                        } catch (InvalidClass iret) {
-                            if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "No success while trying '%(class)': %(cause)", "class", name_to_try, "cause", iret); }
-                        }
+                    if (got_one) {
+                        if (goals_enabled) { cc.done(context); }
+                    } else {
+                        if (goals_enabled) { cc.missed(context); }
                     }
                 }
-                if (got_one) {
-                    if (goals_enabled) { cc.done(context); }
-                } else {
-                    if (goals_enabled) { cc.missed(context); }
-                }
-            }
 
-            if (goals_enabled) { cc.createNextGoal(context, "Examining constructors"); }
-            {
-                Constructor[] cons = targetclass.getConstructors();
-
-                cons_test: for (int i=0; i<cons.length; i++) {
-                    if ((cons[i].getAnnotation(OCPIgnore.class)) != null) { continue cons_test; }
-                    if (Factory_Aggregate.debug_classloader) {
-                        Factory_Aggregate.debugClassLoader("ScaffoldFactory targetclass", targetclass);
-                        Factory_Aggregate.debugClassLoader("ScaffoldFactory ctor declaring of targetclass", cons[i].getDeclaringClass());
-                        Factory_Aggregate.debugClassLoader("ScaffoldFactory ctor of targetclass", cons[i].getClass());
-                    }
-                    if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Adding constructor..."); }
-                    checkAndAppend(context, results, new SpecificScaffoldFactory_Constructor(context, type, cons[i]));
-                }
-
-            }
-            if (goals_enabled) { cc.done(context); }
-
-            if (targetclass.isEnum()) {
-                if (goals_enabled) { cc.createNextGoal(context, "Enumeration, trying enum factory"); }
+                if (goals_enabled) { cc.createNextGoal(context, "Examining constructors"); }
                 {
-                    Type factory_type = TypeManager.get(context, com.sphenon.engines.factorysite.factories.FactoryEnum.class);
-                    checkAndAppend(context, results, new SpecificScaffoldFactory_FactoryEnum(context, type, factory_type, null, true));
+                    Constructor[] cons = targetclass.getConstructors();
+
+                    cons_test: for (int i=0; i<cons.length; i++) {
+                        if ((cons[i].getAnnotation(OCPIgnore.class)) != null) { continue cons_test; }
+                        if (Factory_Aggregate.debug_classloader) {
+                            Factory_Aggregate.debugClassLoader("ScaffoldFactory targetclass", targetclass);
+                            Factory_Aggregate.debugClassLoader("ScaffoldFactory ctor declaring of targetclass", cons[i].getDeclaringClass());
+                            Factory_Aggregate.debugClassLoader("ScaffoldFactory ctor of targetclass", cons[i].getClass());
+                        }
+                        if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Adding constructor..."); }
+                        checkAndAppend(context, results, new SpecificScaffoldFactory_Constructor(context, type, cons[i]));
+                    }
+
                 }
                 if (goals_enabled) { cc.done(context); }
+
+                if (targetclass.isEnum()) {
+                    if (goals_enabled) { cc.createNextGoal(context, "Enumeration, trying enum factory"); }
+                    {
+                        Type factory_type = TypeManager.get(context, com.sphenon.engines.factorysite.factories.FactoryEnum.class);
+                        checkAndAppend(context, results, new SpecificScaffoldFactory_FactoryEnum(context, type, factory_type, null, true));
+                    }
+                    if (goals_enabled) { cc.done(context); }
+                }
+
+            } else { // not a JavaType
+
+                boolean generic_found = false;
+                SpecificScaffoldFactory result = null;
+
+                if (goals_enabled) { cc.createNextGoal(context, "Examining generic class factories"); }
+                GenericClass.Factory generic_class_factory = lookupGenericClassFactory(context, plain_type);
+                if (generic_class_factory != null) {
+                    generic_found = true;
+                    result = getSpecificScaffoldFactory_Class(context, type, generic_class_factory.getClassType(context, type), null, allow_dynamic_type_check, true, generic_class_factory);
+                    checkAndAppend(context, results, result);
+                    if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success, found generic class factory '%(generic)'", "generic", generic_class_factory.getClass().getName()); }
+                }
+                if (goals_enabled) { cc.done(context); }
+
+                if (goals_enabled) { cc.createNextGoal(context, "Examining generic factory factories"); }
+                GenericFactory.Factory generic_factory_factory = lookupGenericFactoryFactory(context, plain_type);
+                if (generic_factory_factory != null) {
+                    generic_found = true;
+                    result = getSpecificScaffoldFactory_Factory(context, type, generic_factory_factory.getFactoryType(context, type), null, allow_dynamic_type_check, true, generic_factory_factory);
+                    checkAndAppend(context, results, result);
+                    if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success, found generic factory factory '%(generic)'", "generic", generic_factory_factory.getClass().getName()); }
+                }
+                if (goals_enabled) { cc.done(context); }
+
+                if (goals_enabled) { cc.createNextGoal(context, "Examining generic retriever factories"); }
+                GenericRetriever.Factory generic_retriever_factory = lookupGenericRetrieverFactory(context, plain_type);
+                if (generic_retriever_factory != null) {
+                    generic_found = true;
+                    result = getSpecificScaffoldFactory_Retriever(context, type, generic_retriever_factory.getRetrieverType(context, type), null, allow_dynamic_type_check, true, generic_retriever_factory);
+                    checkAndAppend(context, results, result);
+                    if ((this.notification_level & Notifier.DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.DIAGNOSTICS, "Success, found generic retriever factory '%(generic)'", "generic", generic_retriever_factory.getClass().getName()); }
+                }
+                if (goals_enabled) { cc.done(context); }
+
+                if (generic_found == false) {
+                    cc.throwLimitation(context, "Type neither an instance of 'JavaType', nor of 'TypeParametrised' and base type of 'JavaType', nor of some generically managed type, but of '%(class)'", "class", type.getClass());
+                    throw (ExceptionLimitation) null;
+                }
             }
         }
 
@@ -840,10 +917,7 @@ public class ScaffoldFactory {
         return results;
     }
 
-    protected SpecificScaffoldFactory getSpecificScaffoldFactory_Factory (CallContext call_context, Type type, Type factory_type, String method_name, boolean allow_dynamic_type_check, boolean do_initialise) throws InvalidFactory {
-        Context context = Context.create(call_context);
-        CustomaryContext cc = CustomaryContext.create(context);
-
+    protected SpecificScaffoldFactory getSpecificScaffoldFactory_Factory (CallContext context, Type type, Type factory_type, String method_name, boolean allow_dynamic_type_check, boolean do_initialise, GenericFactory.Factory generic_factory_factory) throws InvalidFactory {
         SpecificScaffoldFactory result = null;
         try {
             if (allow_dynamic_type_check == false) {
@@ -854,21 +928,18 @@ public class ScaffoldFactory {
             }
         } catch (ClassCastException cce) { /* boo */ }
         if (result == null) {
-            if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.SELF_DIAGNOSTICS, "Creating SpecificScaffoldFactory_Factory..."); }
-            result = new SpecificScaffoldFactory_Factory(context, type, factory_type, method_name, allow_dynamic_type_check, do_initialise, null, null);
+            if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { NotificationContext.sendTrace(context, Notifier.SELF_DIAGNOSTICS, "Creating SpecificScaffoldFactory_Factory..."); }
+            result = new SpecificScaffoldFactory_Factory(context, type, factory_type, method_name, allow_dynamic_type_check, do_initialise, null, null, generic_factory_factory);
             if (allow_dynamic_type_check == false) {
                 cache_by_factory.put(factory_type, result);
             }
         } else {
-            if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.SELF_DIAGNOSTICS, "Using cached SpecificScaffoldFactory_Factory..."); }
+            if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { NotificationContext.sendTrace(context, Notifier.SELF_DIAGNOSTICS, "Using cached SpecificScaffoldFactory_Factory..."); }
         }
         return result;
     }
 
-    protected SpecificScaffoldFactory getSpecificScaffoldFactory_Retriever (CallContext call_context, Type type, Type retriever_type, String method_name, boolean allow_dynamic_type_check, boolean do_initialise) throws InvalidRetriever {
-        Context context = Context.create(call_context);
-        CustomaryContext cc = CustomaryContext.create(context);
-
+    protected SpecificScaffoldFactory getSpecificScaffoldFactory_Retriever (CallContext context, Type type, Type retriever_type, String method_name, boolean allow_dynamic_type_check, boolean do_initialise, GenericRetriever.Factory generic_retriever_factory) throws InvalidRetriever {
         SpecificScaffoldFactory result = null;
         try {
             if (allow_dynamic_type_check == false) {
@@ -879,21 +950,18 @@ public class ScaffoldFactory {
             }
         } catch (ClassCastException cce) { /* boo */ }
         if (result == null) {
-            if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.SELF_DIAGNOSTICS, "Creating SpecificScaffoldFactory_Retriever..."); }
-            result = new SpecificScaffoldFactory_Retriever(context, type, retriever_type, method_name, allow_dynamic_type_check, do_initialise, null, null);
+            if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { NotificationContext.sendTrace(context, Notifier.SELF_DIAGNOSTICS, "Creating SpecificScaffoldFactory_Retriever..."); }
+            result = new SpecificScaffoldFactory_Retriever(context, type, retriever_type, method_name, allow_dynamic_type_check, do_initialise, null, null, generic_retriever_factory);
             if (allow_dynamic_type_check == false) {
                 cache_by_retriever.put(retriever_type, result);
             }
         } else {
-            if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.SELF_DIAGNOSTICS, "Using cached SpecificScaffoldFactory_Retriever..."); }
+            if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { NotificationContext.sendTrace(context, Notifier.SELF_DIAGNOSTICS, "Using cached SpecificScaffoldFactory_Retriever..."); }
         }
         return result;
     }
 
-    protected SpecificScaffoldFactory getSpecificScaffoldFactory_Class (CallContext call_context, Type type, Type class_type, String method_name, boolean allow_dynamic_type_check, boolean do_initialise) throws InvalidClass {
-        Context context = Context.create(call_context);
-        CustomaryContext cc = CustomaryContext.create(context);
-
+    protected SpecificScaffoldFactory getSpecificScaffoldFactory_Class (CallContext context, Type type, Type class_type, String method_name, boolean allow_dynamic_type_check, boolean do_initialise, GenericClass.Factory generic_class_factory) throws InvalidClass {
         SpecificScaffoldFactory result = null;
         try {
             if (allow_dynamic_type_check == false) {
@@ -904,13 +972,13 @@ public class ScaffoldFactory {
             }
         } catch (ClassCastException cce) { /* boo */ }
         if (result == null) {
-            if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.SELF_DIAGNOSTICS, "Creating SpecificScaffoldFactory_Class..."); }
-            result = new SpecificScaffoldFactory_Class(context, type, class_type, method_name, allow_dynamic_type_check, do_initialise, null, null);
+            if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { NotificationContext.sendTrace(context, Notifier.SELF_DIAGNOSTICS, "Creating SpecificScaffoldFactory_Class..."); }
+            result = new SpecificScaffoldFactory_Class(context, type, class_type, method_name, allow_dynamic_type_check, do_initialise, null, null, generic_class_factory);
             if (allow_dynamic_type_check == false) {
                 cache_by_class.put(class_type, result);
             }
         } else {
-            if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { cc.sendTrace(context, Notifier.SELF_DIAGNOSTICS, "Using cached SpecificScaffoldFactory_Class..."); }
+            if ((this.notification_level & Notifier.SELF_DIAGNOSTICS) != 0) { NotificationContext.sendTrace(context, Notifier.SELF_DIAGNOSTICS, "Using cached SpecificScaffoldFactory_Class..."); }
         }
         return result;
     }
@@ -1044,7 +1112,7 @@ public class ScaffoldFactory {
         }
     }
 
-    protected Scaffold getMatchingFactoryAndCreate (CallContext call_context, Vector_SpecificScaffoldFactory_long_ specific_scaffold_factories, Type type, Vector_ScaffoldParameter_long_ parameters, Map_TypeOrNull_String_ parameters_by_name, boolean allow_dynamic_type_check, boolean allow_missing_arguments, String listener, boolean is_singleton, boolean have_dynamic_parameters, FactorySite factory_site, String oid, int pass, Vector<String[]> pre_conditions, Vector<String[]> post_conditions, Vector<String[]>  pre_build_scripts, Vector<String[]>  post_build_scripts, String source_location_info, String problem_monitor_oid) throws InvalidFactory, InvalidRetriever, InvalidClass {
+    protected Scaffold getMatchingFactoryAndCreate (CallContext call_context, Vector_SpecificScaffoldFactory_long_ specific_scaffold_factories, Type type, Vector_ScaffoldParameter_long_ parameters, Map_TypeOrNull_String_ parameters_by_name, boolean allow_dynamic_type_check, boolean allow_missing_arguments, String listener, boolean is_singleton, boolean have_dynamic_parameters, FactorySite factory_site, String oid, int pass, Vector<String[]> pre_conditions, Vector<String[]> post_conditions, Vector<String[]>  pre_build_scripts, Vector<String[]>  post_build_scripts, String source_location_info, String problem_monitor_oid) throws InvalidFactory, InvalidRetriever, InvalidClass, InvalidConfiguration {
         Context context = Context.create(call_context);
         CustomaryContext cc = CustomaryContext.create(context);
 
@@ -1128,8 +1196,9 @@ public class ScaffoldFactory {
             }
         }
         MessageText mt = MessageTextSequence.createSequence(context, mts);
-        cc.throwConfigurationError(context, mt);
-        throw (ExceptionConfigurationError) null;
+
+        InvalidConfiguration.createAndThrow(context, mt);
+        throw (InvalidConfiguration) null;
     }
 
     static protected String cache_file = null;
@@ -1355,12 +1424,34 @@ public class ScaffoldFactory {
                 }
             }
         }
-            
+
+        for (Object ome : cache.entrySet()) {
+            Map.Entry                                me     = (Map.Entry) ome;
+            Type                                     type   = (Type) (me.getKey());
+            Vector_SpecificScaffoldFactory_long_     vssfl  = (Vector_SpecificScaffoldFactory_long_) me.getValue();
+            sortByPriority(context, vssfl);
+        }
+    
         if (stop_watch != null) {
             stop_watch.stop(context, "load cache end");
         }
     }
-    
+
+    static public void sortByPriority(CallContext context, Vector_SpecificScaffoldFactory_long_ vssfl) {
+        VectorImpl_SpecificScaffoldFactory_long_ vissfl = null;
+        try {
+            vissfl = (VectorImpl_SpecificScaffoldFactory_long_) vssfl;
+        } catch (ClassCastException cce) { /* boo */ }
+
+        Vector<SpecificScaffoldFactory> vssf = vissfl.getImplementationVector(context);
+
+        Collections.sort(vssf, new Comparator<SpecificScaffoldFactory>() {
+                public int compare(SpecificScaffoldFactory ssf1, SpecificScaffoldFactory ssf2) {
+                    return Integer.compare(ssf1.getPriority(context), ssf2.getPriority(context));
+                }
+            });
+    }
+
     /* ---------------------------------------------------------------------------------------------------------- */
     /* ---------------------------------------------------------------------------------------------------------- */
     /* ---------------------------------------------------------------------------------------------------------- */

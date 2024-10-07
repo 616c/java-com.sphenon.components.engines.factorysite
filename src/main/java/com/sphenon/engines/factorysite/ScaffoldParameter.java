@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -78,6 +78,10 @@ public class ScaffoldParameter
             } else if (this.type.isA(context, new_type)) {
                 // do nothing
             } else if (new_type.isA(context, this.type)) {
+                this.setType(context, new_type);
+            } else if (TypeManager.isAErased(context, this.type, new_type)) {
+                // do nothing
+            } else if (TypeManager.isAErased(context, new_type, this.type)) {
                 this.setType(context, new_type);
             } else {
                 CustomaryContext.create((Context)context).throwPreConditionViolation(context, "Cannot refine type of scaffold parameter '%(name)' from '%(current)' to new '%(new)', types do not match", "name", this.name, "current", this.type.getName(context), "new", new_type.getName(context));

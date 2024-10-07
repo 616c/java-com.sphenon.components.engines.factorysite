@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite.json;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -218,11 +218,21 @@ public class BuildTextComplexJSON extends BuildTextJSONBaseImpl implements Build
                             continue;
                         }
                         JsonNode child = node.get(field_name);
-                        String child_name = BuildTextJSONFactory.getNodeName(context, node);
+                        String child_name = BuildTextJSONFactory.getNodeName(context, child);
                         if (child_name == null || child_name.length() == 0) {
                             child_name = field_name;
                         }
-                        BuildText btchild = bt_factory.create(context, child, child_name);
+
+                        BuildText btchild = null;
+                        if (child.isValueNode()) {
+                            String text = child.asText();
+                            btchild = new BuildTextComplex_String(context, "", "", "", "", "", source_location_info,
+                                          new Pair_BuildText_String_(context,
+                                              new BuildTextSimple_String(context, "", "", "java.lang.String", "", "", text, source_location_info), ""));
+                        } else {
+                            btchild = bt_factory.create(context, child, child_name);
+                        }
+
                         if (field_name.startsWith("@Meta:")) {
                             BuildText btsubchild = null;
                             if (btchild instanceof BuildTextComplex) {

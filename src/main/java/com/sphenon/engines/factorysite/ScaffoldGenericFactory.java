@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -148,7 +148,7 @@ public class ScaffoldGenericFactory
                 
                 Scope local_scope = this.pushScope(context, dsp, true);
 
-                Iterable it = getForeach(context, dsp);
+                Iterable it = getForeach(context, dsp, local_scope);
                 if (it != null) {
                     for (Object index_object : it) {
                         updateScope(context, dsp, local_scope, index_object);
@@ -201,7 +201,12 @@ public class ScaffoldGenericFactory
                 Array.set(setvalues, vi++, value);
             }
             
-            ReflectionUtilities.invoke(context, set_parameters_at_once, factoryinstance, context, setnames, setvalues);
+            try {
+                ReflectionUtilities.invoke(context, set_parameters_at_once, factoryinstance, context, setnames, setvalues);
+            } catch (Throwable t) {
+                CustomaryContext.create((Context)context).throwConfigurationError(context, t, "Could not set parameters at once, factory '%(factory)', names '%(names)'", "factory", factoryinstance.getClass().getName(), "names", StringUtilities.join(context, setnames, ","));
+                throw (ExceptionConfigurationError) null; // compiler insists
+            }
         } else {
             if (parameters_to_be_set != null) {
                 for (int i=0; i<parameters_to_be_set.getSize(context); i++) {
@@ -217,10 +222,15 @@ public class ScaffoldGenericFactory
                             ((Scaffold)(sp.getValue(context))).skip(context);
                         }
                         if (pe.default_method != null) {
-                            if (pe.default_method_has_context) {
-                                set_value = ReflectionUtilities.invoke(context, pe.default_method, factoryinstance, context);
-                            } else {
-                                set_value = ReflectionUtilities.invoke(context, pe.default_method, factoryinstance);
+                            try {
+                                if (pe.default_method_has_context) {
+                                    set_value = ReflectionUtilities.invoke(context, pe.default_method, factoryinstance, context);
+                                } else {
+                                    set_value = ReflectionUtilities.invoke(context, pe.default_method, factoryinstance);
+                                }
+                            } catch (Throwable t) {
+                                CustomaryContext.create((Context)context).throwConfigurationError(context, t, "Could not get default value via '%(method)', factory '%(factory)'", "factory", factoryinstance.getClass().getName(), "method", pe.default_method.getName());
+                                throw (ExceptionConfigurationError) null; // compiler insists
                             }
                         } else {
                             this.popScope(context);
@@ -237,10 +247,15 @@ public class ScaffoldGenericFactory
 
                     this.popScope(context);
                     
-                    if (pe.set_method_has_context) {
-                        ReflectionUtilities.invoke(context, pe.set_method, factoryinstance, context, set_value);
-                    } else {
-                        ReflectionUtilities.invoke(context, pe.set_method, factoryinstance, set_value);
+                    try {
+                        if (pe.set_method_has_context) {
+                            ReflectionUtilities.invoke(context, pe.set_method, factoryinstance, context, set_value);
+                        } else {
+                            ReflectionUtilities.invoke(context, pe.set_method, factoryinstance, set_value);
+                        }
+                    } catch (Throwable t) {
+                        CustomaryContext.create((Context)context).throwConfigurationError(context, t, "Could not set value via '%(method)', factory '%(factory)', value '%(value)'", "factory", factoryinstance.getClass().getName(), "method", pe.set_method.getName(), "value", set_value);
+                        throw (ExceptionConfigurationError) null; // compiler insists
                     }
                 }
             }
@@ -248,15 +263,25 @@ public class ScaffoldGenericFactory
                 for (int i=0; i<parameters_to_be_defaulted.getSize(context); i++) {
                     ParEntry pe = parameters_to_be_defaulted.tryGet(context, i);
                     Object set_value;
-                    if (pe.default_method_has_context) {
-                        set_value = ReflectionUtilities.invoke(context, pe.default_method, factoryinstance, context);
-                    } else {
-                        set_value = ReflectionUtilities.invoke(context, pe.default_method, factoryinstance);
+                    try {
+                        if (pe.default_method_has_context) {
+                            set_value = ReflectionUtilities.invoke(context, pe.default_method, factoryinstance, context);
+                        } else {
+                            set_value = ReflectionUtilities.invoke(context, pe.default_method, factoryinstance);
+                        }
+                    } catch (Throwable t) {
+                        CustomaryContext.create((Context)context).throwConfigurationError(context, t, "Could not get default value via '%(method)', factory '%(factory)'", "factory", factoryinstance.getClass().getName(), "method", pe.default_method.getName());
+                        throw (ExceptionConfigurationError) null; // compiler insists
                     }
-                    if (pe.set_method_has_context) {
-                        ReflectionUtilities.invoke(context, pe.set_method, factoryinstance, context, set_value);
-                    } else {
-                        ReflectionUtilities.invoke(context, pe.set_method, factoryinstance, set_value);
+                    try {
+                        if (pe.set_method_has_context) {
+                            ReflectionUtilities.invoke(context, pe.set_method, factoryinstance, context, set_value);
+                        } else {
+                            ReflectionUtilities.invoke(context, pe.set_method, factoryinstance, set_value);
+                        }
+                    } catch (Throwable t) {
+                        CustomaryContext.create((Context)context).throwConfigurationError(context, t, "Could not set value via '%(method)', factory '%(factory)', value '%(value)'", "factory", factoryinstance.getClass().getName(), "method", pe.set_method.getName(), "value", set_value);
+                        throw (ExceptionConfigurationError) null; // compiler insists
                     }
                 }
             }

@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -545,8 +545,9 @@ abstract public class COCPBuildTextBase {
                     String parameter_name = getTextByIndex(context, (Integer) arguments[a++]);
                     String parameter_type = getTextByIndex(context, (Integer) arguments[a++]);
                     Boolean optional      = getCOCPBoolean(context, (Integer) arguments[a++]);
-                    if ((notification_level & Notifier.DIAGNOSTICS) != 0) { NotificationContext.sendDiagnostics(context, "COCP BT Factory: method '%(method)' ('%(name)', '%(type)', '%(optional)')", "method", COCPIndices.methods[method_index], "name", parameter_name, "type", parameter_type, "optional", optional); }
-                    ((BuildTextBase) bt).addParameterToDeclare(context, parameter_name, parameter_type, optional);
+                    String default_value  = getTextByIndex(context, (Integer) arguments[a++]);
+                    if ((notification_level & Notifier.DIAGNOSTICS) != 0) { NotificationContext.sendDiagnostics(context, "COCP BT Factory: method '%(method)' ('%(name)', '%(type)', '%(optional)', '%(defaultvalue)')", "method", COCPIndices.methods[method_index], "name", parameter_name, "type", parameter_type, "optional", optional, "defaultvalue", default_value); }
+                    ((BuildTextBase) bt).addParameterToDeclare(context, parameter_name, parameter_type, optional, default_value);
                     break;
                 }
                 case COCPIndices.BuildText_ScaffoldFactory: {

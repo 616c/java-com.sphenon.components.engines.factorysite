@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -60,6 +60,10 @@ public class SpecificScaffoldFactory_Constructor implements SpecificScaffoldFact
     protected String type_context;
 
     protected Vector<ParEntry> formal_scaffold_parameters;
+
+    public int getPriority(CallContext context) {
+        return 6;
+    }
 
     public Vector<ParEntry> getFormalScaffoldParameters (CallContext context) {
         if (this.formal_scaffold_parameters == null) {

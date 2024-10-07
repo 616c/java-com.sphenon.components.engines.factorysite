@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite.factories;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -46,6 +46,7 @@ import com.sphenon.basics.graph.*;
 import com.sphenon.basics.graph.tplinst.*;
 import com.sphenon.basics.graph.factories.*;
 import com.sphenon.basics.graph.files.factories.*;
+import com.sphenon.formats.json.*;
 
 import com.sphenon.engines.factorysite.*;
 import com.sphenon.engines.factorysite.returncodes.*;
@@ -67,6 +68,9 @@ import java.util.Vector;
 
 public class Factory_Aggregate
 {
+    static public boolean crash_debug = false;
+
+
     static final public Class _class = Factory_Aggregate.class;
 
     static protected Configuration config;
@@ -196,6 +200,11 @@ public class Factory_Aggregate
         return doConstruct2(context, aggregate_class, null, null, null, null, true, arguments);
     }
 
+    static public Object construct(CallContext context, String aggregate_class, Map arguments) {
+        if (arguments == null) { arguments = new HashMap(); }
+        return doConstruct2(context, aggregate_class, null, null, null, null, true, arguments);
+    }
+
     static public Object construct(CallContext context, TreeNode aggregate_tree_node, Object... arguments) {
         return doConstruct(context, null, aggregate_tree_node, null, null, null, true, arguments);
     }
@@ -227,6 +236,15 @@ public class Factory_Aggregate
     
     static public Object construct(CallContext context, BuildText aggregate_build_text, String name_space, Object... arguments) {
         return doConstruct(context, null, null, aggregate_build_text, null, name_space, false, arguments);
+    }
+
+    static public Object construct(CallContext context, JSONNode node, String name_space, Object... arguments) {
+        try {
+            return doConstruct(context, null, null, new BuildTextJSONFactory(context, node, null, null).getBuildText(context), null, name_space, false, arguments);
+        } catch (InvalidDocument id) {
+            CustomaryContext.create((Context)context).throwPreConditionViolation(context, id, "Provided JSON is invalid");
+            throw (ExceptionPreConditionViolation) null; // compiler insists
+        }
     }
     
     static public Map makeMap(CallContext context, boolean ignore_null, Object... arguments) {
@@ -675,10 +693,15 @@ public class Factory_Aggregate
         RuntimeStep runtime_step = null;
         if ((runtimestep_level & RuntimeStepLevel.OBSERVATION_CHECKPOINT) != 0) { runtime_step = RuntimeStep.create(context, RuntimeStepLevel.OBSERVATION_CHECKPOINT, _class, "Validating aggregate class '%(id)'", "id", this.getId(context)); }
 
+        // this is to debug occasional exceptions fairyloom/board
+        // Factory_Aggregate.java:1160 --- "Parameter 'aggregate class' wurde nicht übergeben"
+        if (crash_debug) { SystemContext.err.println(context, "FA " + SystemUtilities.getObjectIdHex(context, this) + " " + this.aggregate_class + " " + this.aggregate_class_validation_state + " (entry)"); }
+
         if (    this.aggregate_class_validation_state == -1
              || (this.aggregate_class_validation_state == -2 && prevalidate_only == false)
            ) {
             if (this.aggregate_class == null && this.aggregate_tree_node == null && this.aggregate_build_text == null) {
+                if (crash_debug) { SystemContext.err.println(context, "FA " + SystemUtilities.getObjectIdHex(context, this) + " " + this.aggregate_class + " " + this.aggregate_class_validation_state + " (=> 1)"); }
                 this.aggregate_class_validation_state = 1;
             } else {
                 if (this.aggregate_class != null && this.aggregate_class.matches("role=.*")) {
@@ -1135,6 +1158,7 @@ public class Factory_Aggregate
             }
         }
 
+        if (crash_debug) { SystemContext.err.println(context, "FA " + SystemUtilities.getObjectIdHex(context, this) + " " + this.aggregate_class + " " + this.aggregate_class_validation_state + " (switch)"); }
         ValidationFailure vf = null;
         switch (this.aggregate_class_validation_state) {
             case -2:
@@ -1142,6 +1166,7 @@ public class Factory_Aggregate
             case 0:
                 break;
             case 1:
+                if (crash_debug) { SystemContext.err.println(context, "FA " + SystemUtilities.getObjectIdHex(context, this) + " " + this.aggregate_class + " " + this.aggregate_class_validation_state + " (ValidationFailure)"); }
                 vf = ValidationFailure.createValidationFailure(context, FactorySiteStringPool.get(context, "1.2.1" /* Factory_Aggregate: parameter not set: aggregate class */));
                 break;
             case 2:
@@ -1554,8 +1579,11 @@ public class Factory_Aggregate
     public long getLastModification (CallContext context) {
 
         try {
+            if (crash_debug) { SystemContext.err.println(context, "FA " + SystemUtilities.getObjectIdHex(context, this) + " " + this.aggregate_class + " " + this.aggregate_class_validation_state + " (last modification, validating...)"); }
             validateAggregateClass(context);
+            if (crash_debug) { SystemContext.err.println(context, "FA " + SystemUtilities.getObjectIdHex(context, this) + " " + this.aggregate_class + " " + this.aggregate_class_validation_state + " (last modification, validated)"); }
         } catch (ValidationFailure vf) {
+            if (crash_debug) { SystemContext.err.println(context, "FA " + SystemUtilities.getObjectIdHex(context, this) + " " + this.aggregate_class + " " + this.aggregate_class_validation_state + " (catch failure)"); }
             CustomaryContext.create((Context)context).throwPreConditionViolation(context, vf, FactorySiteStringPool.get(context, "1.2.15" /* Parameter 'AggregateClass' ('%(aggregateclass)') is invalid */), "aggregateclass", this.aggregate_class);
         }
 
@@ -1783,7 +1811,10 @@ public class Factory_Aggregate
         java.lang.Runtime.getRuntime().addShutdownHook(new Thread() { public void run() { saveAggregateFactoryCache(RootContext.getDestructionContext()); } });
     }
 
+    static protected int afc_verbose = 1; // 0: none, 1: summary, 2: detailed
+
     static protected Map<String,String[]> getAggregateFactoryCache(CallContext context) {
+        int afc_read = 0;
         Map<String,String[]> cache = new HashMap<String,String[]>();
         String cache_content = config.get(context, "AggregateFactoryCache", (String) null);
         if (cache_content != null) {
@@ -1797,7 +1828,11 @@ public class Factory_Aggregate
                               Encoding.recode(context, ep[4], Encoding.URI, Encoding.UTF8),
                               Encoding.recode(context, ep[5], Encoding.URI, Encoding.UTF8)
                           });
+                afc_read++;
             }
+        }
+        if (afc_verbose >= 1) {
+            System.err.println("Aggregate Factory Cache: read " + afc_read);
         }
         return cache;
     }
@@ -1817,8 +1852,6 @@ public class Factory_Aggregate
         }
         return path;
     }
-
-    static protected int afc_verbose = 1; // 0: none, 1: summary, 2: detailed
 
     static public void saveAggregateFactoryCache(CallContext context) {
         int afc_written = 0;
@@ -1939,6 +1972,8 @@ public class Factory_Aggregate
             cf.setExpectedType(context, expected_type.isEmpty() ? null : TypeManager.tryGet(context, expected_type));
             cf.setNameSpace(context, name_space.isEmpty() ? null : name_space);
             cf.setUseCache(context, true);
+
+            // System.err.println("Loading Aggregate: " + aggregate_class + ", " + aggregate_tree_node + ", " + aggregate_target_class + ", " + expected_type + ", " + name_space);
 
             if (cf.isValidNameSpace(context)) {
                 cf.getFactorySite(context);

@@ -1,7 +1,7 @@
 package com.sphenon.engines.factorysite;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -119,13 +119,13 @@ public class ScaffoldGenericRetrieverCOCP extends ScaffoldBaseRetriever {
         } else {
             if (this.retriever_instance == null) {
                 this.retriever_instance = (this.cocpar != null ? this.cocpar.createRetrieverInstance(context, this) : this.cocpbtr.createRetrieverInstance(context, this));
-            }
-            if (this.component_type != null) {
-                if (this.cocpar != null) {
-                    this.cocpar.setComponentType(context, this, this.component_type);
+                if (this.component_type != null) {
+                    if (this.cocpar != null) {
+                        this.cocpar.setComponentType(context, this, this.component_type);
+                    }
                 }
+                this.retrieverinstance = this.retriever_instance;
             }
-            this.retrieverinstance = this.retriever_instance;
             return this.retriever_instance;
         }
     }
@@ -192,7 +192,7 @@ public class ScaffoldGenericRetrieverCOCP extends ScaffoldBaseRetriever {
                     
                     local_scope = this.pushScope(context, dsp, true);
                     
-                    it = getForeach(context, dsp);
+                    it = getForeach(context, dsp, local_scope);
                     if (it != null) {
                         for (Object index_object : it) {
                             updateScope(context, dsp, local_scope, index_object);
@@ -242,7 +242,7 @@ public class ScaffoldGenericRetrieverCOCP extends ScaffoldBaseRetriever {
 
                     local_scope = this.pushScope(context, dsp, true);
 
-                    it = getForeach(context, dsp);
+                    it = getForeach(context, dsp, local_scope);
                     if (it != null) {
                         for (Object index_object : it) {
                             updateScope(context, dsp, local_scope, index_object);
